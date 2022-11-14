@@ -1,0 +1,23 @@
+# Ignore all
+*
+# Unignore all with extensions
+!*.*
+# Unignore all dirs
+!*/
+# Unignore corner-case files
+!LICENSE
+!README
+!Makefile
+!Dockerfile*
+
+vendor.protogen/*
+
+# Various IDEs
+.project
+.idea/
+*.tmproj
+.vscode/
+
+.DS_Store
+
+bin/
