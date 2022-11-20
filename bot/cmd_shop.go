@@ -2,43 +2,45 @@ package bot
 
 import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"github.com/mispon/xbox-store-bot/utils/http"
 	"go.uber.org/zap"
 )
 
-type (
-	categoryResp struct {
-		Items []categoryItem `json:"category"`
-	}
-
-	categoryItem struct {
-		Id   string
-		Name string
-		Sub  []categorySubItem
-	}
-
-	categorySubItem struct {
-		Id   string
-		Name string
-	}
-)
-
 func (b *bot) ShopCmd(upd tgbotapi.Update) {
-	resp, err := http.Get[categoryResp](b.Client, categoryUrl+b.sellerId)
-	if err != nil {
-		b.logger.Error("failed to get categories", zap.Error(err))
-		return
-	}
+	reply := tgbotapi.NewMessage(upd.Message.Chat.ID, "Категории")
+	reply.ReplyMarkup = b.getCategoriesKeyboard()
 
-	var list string
-	for _, category := range resp.Items {
-		list += category.Name + "\n"
-		for _, sub := range category.Sub {
-			list += "\t" + sub.Name + "\n"
+	if err := b.apiRequest(reply); err != nil {
+		b.logger.Error("failed to show categories", zap.Error(err))
+	}
+}
+
+func (b *bot) ShopCallback(upd tgbotapi.Update) {
+	reply := tgbotapi.NewEditMessageTextAndMarkup(
+		upd.CallbackQuery.Message.Chat.ID,
+		upd.CallbackQuery.Message.MessageID,
+		"Категории",
+		b.getCategoriesKeyboard(),
+	)
+
+	if err := b.apiRequest(reply); err != nil {
+		b.logger.Error("failed to edit categories", zap.Error(err))
+	}
+}
+
+func (b *bot) getCategoriesKeyboard() tgbotapi.InlineKeyboardMarkup {
+	categories := b.cache.Categories()
+
+	rows := make([][]tgbotapi.InlineKeyboardButton, 0, len(categories)+1)
+	for _, category := range categories {
+		data := callbackEntity{
+			parentType: Categories,
+			cbType:     SubCategory,
+			id:         category.Id,
 		}
-		list += "\n"
+
+		button := tgbotapi.NewInlineKeyboardButtonData(category.Name, marshallCb(data))
+		rows = append(rows, tgbotapi.NewInlineKeyboardRow(button))
 	}
 
-	reply := tgbotapi.NewMessage(upd.Message.Chat.ID, list)
-	b.apiRequest(reply)
+	return tgbotapi.NewInlineKeyboardMarkup(rows...)
 }

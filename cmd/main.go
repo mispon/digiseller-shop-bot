@@ -1,10 +1,12 @@
 package main
 
 import (
-	xsbot "github.com/mispon/xbox-store-bot/bot"
 	"go.uber.org/zap"
 	"log"
 	"os"
+
+	xsbot "github.com/mispon/xbox-store-bot/bot"
+	"github.com/mispon/xbox-store-bot/bot/cache"
 )
 
 func main() {
@@ -20,10 +22,16 @@ func main() {
 
 	logger := mustLogger()
 
+	botCache, err := cache.New(logger, sellerId)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	opts := []xsbot.Option{
+		xsbot.WithSeller(sellerId),
 		xsbot.WithDebug(os.Getenv("XSB_DEBUG")),
 	}
-	bot, err := xsbot.New(logger, token, sellerId, opts...)
+	bot, err := xsbot.New(logger, botCache, token, opts...)
 	if err != nil {
 		log.Fatal("failed to create bot", err)
 	}

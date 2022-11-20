@@ -2,6 +2,7 @@ package bot
 
 import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/mispon/xbox-store-bot/bot/desc"
 	"go.uber.org/zap"
 )
 
@@ -9,17 +10,24 @@ type (
 	bot struct {
 		*tgbotapi.BotAPI
 
-		logger   *zap.Logger
-		sellerId string
+		logger *zap.Logger
+		cache  inMemoryCache
+		opts   options
 
-		commands map[string]commandEntity
+		commands  map[string]commandEntity
+		callbacks map[callbackType]callbackFn
+	}
 
-		opts options
+	inMemoryCache interface {
+		Categories() []desc.Category
+		SubCategory(categoryId string) (string, []desc.SubCategory, bool)
+		Products(subCategoryId string) (string, []desc.Product, bool)
+		Product(subCategoryId, productId string) (desc.Product, bool)
 	}
 )
 
 // New creates bot instance
-func New(logger *zap.Logger, token, sellerId string, opts ...Option) (*bot, error) {
+func New(logger *zap.Logger, cache inMemoryCache, token string, opts ...Option) (*bot, error) {
 	api, aErr := tgbotapi.NewBotAPI(token)
 	if aErr != nil {
 		return nil, aErr
@@ -32,18 +40,20 @@ func New(logger *zap.Logger, token, sellerId string, opts ...Option) (*bot, erro
 	api.Debug = bo.debug
 
 	b := &bot{
-		BotAPI:   api,
-		logger:   logger,
-		sellerId: sellerId,
-		commands: make(map[string]commandEntity),
-		opts:     bo,
+		BotAPI:    api,
+		logger:    logger.Named("bot"),
+		cache:     cache,
+		opts:      bo,
+		commands:  make(map[string]commandEntity),
+		callbacks: make(map[callbackType]callbackFn),
 	}
 
 	if err := b.initCommands(); err != nil {
 		return nil, err
 	}
+	b.initCallbacks()
 
-	logger.Info("bot created", zap.String("username", api.Self.UserName))
+	b.logger.Info("bot created", zap.String("username", api.Self.UserName))
 	return b, nil
 }
 

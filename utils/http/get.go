@@ -34,7 +34,7 @@ func Get[T any](client Client, url string) (T, error) {
 
 	var result T
 	if jErr := json.Unmarshal(content, &result); jErr != nil {
-		return empty, fmt.Errorf("failed to unmarshal response: %v", err)
+		return empty, fmt.Errorf("failed to unmarshal response: %v", jErr)
 	}
 
 	return result, nil
