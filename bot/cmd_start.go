@@ -2,6 +2,7 @@ package bot
 
 import (
 	"fmt"
+	"go.uber.org/zap"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
@@ -14,13 +15,22 @@ const (
 	ReplyHelp       = replyKeyboardValue("Помощь")
 )
 
+const (
+	inviteUrl = "https://t.me/+1-lMGCQ7zOphODUy"
+)
+
 func (b *bot) StartCmd(upd tgbotapi.Update) {
 	name := upd.Message.From.UserName
 	if name == "" {
 		name = upd.Message.From.FirstName
 	}
-	message := fmt.Sprintf("Добро пожаловать в xbox-stoge, %s!", name)
-	reply := tgbotapi.NewMessage(upd.Message.Chat.ID, message)
+	message := `
+Добро пожаловать в <b>Xbox Store | Бот-магазин подписок и игр</b>, %s!
+
+Не забывайте подписаться на <a href='%s'>наш основной канал</a> и следить за новостями и выходе игровых новинок и об акциях.
+`
+	reply := tgbotapi.NewMessage(upd.Message.Chat.ID, fmt.Sprintf(message, name, inviteUrl))
+	reply.ParseMode = "html"
 
 	keyboard := tgbotapi.NewReplyKeyboard(
 		tgbotapi.NewKeyboardButtonRow(
@@ -30,6 +40,9 @@ func (b *bot) StartCmd(upd tgbotapi.Update) {
 		),
 	)
 	reply.ReplyMarkup = keyboard
+	reply.DisableWebPagePreview = true
 
-	b.apiRequest(reply)
+	if err := b.apiRequest(reply); err != nil {
+		b.logger.Error("failed to send start message", zap.Error(err))
+	}
 }
