@@ -20,6 +20,7 @@ func (b *bot) Run() {
 				} else {
 					b.logger.Error("command handler not found", zap.String("cmd", key))
 				}
+				continue
 			}
 
 			cmd, ok := b.replyToCommand(upd.Message.Text)
