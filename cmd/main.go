@@ -2,10 +2,11 @@ package main
 
 import (
 	"flag"
+	"log"
+
 	xsbot "github.com/mispon/xbox-store-bot/bot"
 	"github.com/mispon/xbox-store-bot/bot/cache"
 	"go.uber.org/zap"
-	"log"
 )
 
 var (

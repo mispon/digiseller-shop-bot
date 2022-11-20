@@ -12,13 +12,22 @@ func (b *bot) Run() {
 		Timeout: 10,
 	}
 	for upd := range b.GetUpdatesChan(updatesCfg) {
-		if upd.Message != nil && upd.Message.IsCommand() {
-			key := upd.Message.Command()
-			if cmd, ok := b.commands[key]; ok {
-				go cmd.action(upd)
-			} else {
-				b.logger.Error("command handler not found", zap.String("cmd", key))
+		if upd.Message != nil {
+			if upd.Message.IsCommand() {
+				key := upd.Message.Command()
+				if cmd, ok := b.commands[commandKey(key)]; ok {
+					go cmd.action(upd)
+				} else {
+					b.logger.Error("command handler not found", zap.String("cmd", key))
+				}
 			}
+
+			cmd, ok := b.replyToCommand(upd.Message.Text)
+			if !ok {
+				b.logger.Error("not found command for reply", zap.String("reply", upd.Message.Text))
+				continue
+			}
+			cmd.action(upd)
 		}
 
 		if upd.CallbackQuery != nil {
@@ -28,15 +37,9 @@ func (b *bot) Run() {
 			callback := tgbotapi.NewCallback(upd.CallbackQuery.ID, "")
 			b.apiRequest(callback)
 
-			// b.deleteMessage(upd)
 			b.callbacks[entity.cbType](upd, entity)
 		}
 	}
-}
-
-func (b *bot) deleteMessage(upd tgbotapi.Update) {
-	deleteMsg := tgbotapi.NewDeleteMessage(upd.CallbackQuery.Message.Chat.ID, upd.CallbackQuery.Message.MessageID)
-	b.apiRequest(deleteMsg)
 }
 
 func backButton(parentType callbackType, parentIds []string) []tgbotapi.InlineKeyboardButton {

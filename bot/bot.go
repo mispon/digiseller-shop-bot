@@ -14,7 +14,7 @@ type (
 		cache  inMemoryCache
 		opts   options
 
-		commands  map[string]commandEntity
+		commands  map[commandKey]commandEntity
 		callbacks map[callbackType]callbackFn
 	}
 
@@ -44,7 +44,7 @@ func New(logger *zap.Logger, cache inMemoryCache, token string, opts ...Option) 
 		logger:    logger.Named("bot"),
 		cache:     cache,
 		opts:      bo,
-		commands:  make(map[string]commandEntity),
+		commands:  make(map[commandKey]commandEntity),
 		callbacks: make(map[callbackType]callbackFn),
 	}
 
