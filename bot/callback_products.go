@@ -48,8 +48,6 @@ func (b *bot) ProductCallback(upd tgbotapi.Update, producs callbackEntity) {
 	)
 	rows = append(rows, backButton(Products, producs.parentIds)...)
 
-	// todo: load image
-
 	reply := tgbotapi.NewEditMessageTextAndMarkup(
 		upd.CallbackQuery.Message.Chat.ID,
 		upd.CallbackQuery.Message.MessageID,
@@ -57,6 +55,7 @@ func (b *bot) ProductCallback(upd tgbotapi.Update, producs callbackEntity) {
 		tgbotapi.NewInlineKeyboardMarkup(rows),
 	)
 	reply.ParseMode = "html"
+	reply.DisableWebPagePreview = false
 
 	if err := b.apiRequest(reply); err != nil {
 		b.logger.Error("failed to show product", zap.Error(err))
