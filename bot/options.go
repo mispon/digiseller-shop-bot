@@ -1,7 +1,5 @@
 package bot
 
-import "strconv"
-
 type (
 	options struct {
 		sellerId string
@@ -19,10 +17,9 @@ func WithSeller(sellerId string) Option {
 }
 
 // WithDebug enables debug output
-func WithDebug(debug string) Option {
+func WithDebug(debug bool) Option {
 	return func(o *options) {
-		if v, err := strconv.ParseBool(debug); err != nil {
-			o.debug = v
-		}
+		o.debug = debug
+
 	}
 }

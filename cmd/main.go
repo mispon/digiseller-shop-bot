@@ -1,37 +1,44 @@
 package main
 
 import (
-	"go.uber.org/zap"
-	"log"
-	"os"
-
+	"flag"
 	xsbot "github.com/mispon/xbox-store-bot/bot"
 	"github.com/mispon/xbox-store-bot/bot/cache"
+	"go.uber.org/zap"
+	"log"
 )
 
+var (
+	token    = flag.String("token", "", "-token=qwerty")
+	sellerId = flag.String("seller-id", "", "-seller-id=12345")
+	debug    = flag.Bool("debug", false, "-debug=true")
+)
+
+func init() {
+	flag.Parse()
+}
+
 func main() {
-	token, ok := os.LookupEnv("XSB_TELEGRAM_TOKEN")
-	if !ok {
+	if *token == "" {
 		log.Fatal("bot token is not specified")
 	}
 
-	sellerId, ok := os.LookupEnv("XSB_SELLER_ID")
-	if !ok {
+	if *sellerId == "" {
 		log.Fatal("seller id is not specified")
 	}
 
 	logger := mustLogger()
 
-	botCache, err := cache.New(logger, sellerId)
+	botCache, err := cache.New(logger, *sellerId)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	opts := []xsbot.Option{
-		xsbot.WithSeller(sellerId),
-		xsbot.WithDebug(os.Getenv("XSB_DEBUG")),
+		xsbot.WithSeller(*sellerId),
+		xsbot.WithDebug(*debug),
 	}
-	bot, err := xsbot.New(logger, botCache, token, opts...)
+	bot, err := xsbot.New(logger, botCache, *token, opts...)
 	if err != nil {
 		log.Fatal("failed to create bot", err)
 	}
