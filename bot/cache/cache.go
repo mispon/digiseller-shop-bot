@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -102,6 +103,26 @@ func (c *cache) Product(subCategoryId, productId string) (desc.Product, bool) {
 	}
 
 	return desc.Product{}, false
+}
+
+func (c *cache) Search(text string) ([]desc.Product, bool) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	var products []desc.Product
+	for _, productsList := range c.data.Products {
+		for _, product := range productsList {
+			name := strings.ToLower(product.Name)
+			if strings.Contains(name, text) {
+				products = append(products, product)
+			}
+		}
+	}
+
+	if len(products) > 0 {
+		return products, true
+	}
+	return nil, false
 }
 
 func (c *cache) load() error {

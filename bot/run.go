@@ -23,14 +23,14 @@ func (b *bot) Run() {
 				continue
 			}
 
-			cmd, ok := b.replyToCommand(upd.Message.Text)
-			if !ok {
-				b.logger.Error("not found command for reply", zap.String("reply", upd.Message.Text))
+			if cmd, ok := b.replyToCommand(upd.Message.Text); ok {
+				go cmd.action(upd)
 				continue
 			}
-			cmd.action(upd)
+
+			go b.SearchCmd(upd)
 		}
-		
+
 		if upd.CallbackQuery != nil {
 			data := upd.CallbackData()
 			entity := unmarshallCb(data)
