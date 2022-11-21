@@ -58,6 +58,6 @@ func (b *bot) ProductCallback(upd tgbotapi.Update, producs callbackEntity) {
 	reply.DisableWebPagePreview = false
 
 	if err := b.apiRequest(reply); err != nil {
-		b.logger.Error("failed to show product", zap.Error(err))
+		b.logger.Error("failed to show product", zap.String("product", product.Name), zap.Error(err))
 	}
 }

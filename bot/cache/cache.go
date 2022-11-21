@@ -13,8 +13,9 @@ import (
 )
 
 const (
-	categoryUrl = "https://api.digiseller.ru/api/categories?seller_id=%s"
-	productUrl  = "https://api.digiseller.ru/api/shop/products?seller_id=%s&category_id=%s&page=%d"
+	categoryUrl    = "https://api.digiseller.ru/api/categories?seller_id=%s"
+	productListUrl = "https://api.digiseller.ru/api/shop/products?seller_id=%s&category_id=%s&page=%d"
+	productDataUrl = "https://api.digiseller.ru/api/products/%s/data"
 )
 
 type (
@@ -110,20 +111,20 @@ func (c *cache) load() error {
 		return err
 	}
 
-	products := make(map[string][]desc.Product)
+	productsMap := make(map[string][]desc.Product)
 	for _, category := range categoriesResp.Items {
 		for _, sc := range category.Sub {
 			page := 1
 			for {
-				productsResp, pErr := uhttp.Get[desc.Products](c.client, fmt.Sprintf(productUrl, c.sellerId, sc.Id, page))
+				productsResp, pErr := uhttp.Get[desc.Products](c.client, fmt.Sprintf(productListUrl, c.sellerId, sc.Id, page))
 				if pErr != nil {
 					c.logger.Error("failed to load products", zap.Error(err))
 					return pErr
 				}
 
-				items := products[sc.Id]
+				items := productsMap[sc.Id]
 				items = append(items, productsResp.Items...)
-				products[sc.Id] = items
+				productsMap[sc.Id] = items
 
 				page++
 				if tp, cErr := strconv.Atoi(productsResp.Pages); cErr != nil || page > tp {
@@ -133,18 +134,34 @@ func (c *cache) load() error {
 		}
 	}
 
+	for sc, productsList := range productsMap {
+		for i, product := range productsList {
+			info, pErr := uhttp.Get[desc.ProductFull](c.client, fmt.Sprintf(productDataUrl, product.Id))
+			if pErr != nil {
+				c.logger.Error("failed to get full product data", zap.String("product", product.Name), zap.Error(err))
+				continue
+			}
+			product.Info = info.Product.Info
+			product.AddInfo = info.Product.AddInfo
+
+			productsList[i] = product
+		}
+		productsMap[sc] = productsList
+	}
+
 	c.mu.Lock()
 	c.data.Categories = categoriesResp.Items
-	c.data.Products = products
+	c.data.Products = productsMap
 	c.mu.Unlock()
 
 	return nil
 }
 
 func (c *cache) refresh() {
-	for range time.After(10 * time.Minute) {
+	for range time.After(30 * time.Minute) {
 		if err := c.load(); err != nil {
 			c.logger.Error("failed to load data", zap.Error(err))
 		}
+		c.logger.Info("cache successfully updated")
 	}
 }

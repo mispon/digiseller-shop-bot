@@ -17,16 +17,26 @@ type (
 	}
 
 	Product struct {
-		Id    string
-		Name  string
-		Info  string
-		Price string `json:"price_rub"`
-		Curr  string `json:"base_currency"`
+		Id      string
+		Name    string
+		Info    string `json:"-"`
+		AddInfo string `json:"-"`
+		Price   string `json:"price_rub"`
+		Curr    string `json:"base_currency"`
+	}
+
+	ProductFull struct {
+		Product struct {
+			Info    string `json:"info"`
+			AddInfo string `json:"add_info"`
+		}
 	}
 )
 
 var (
 	htmlReplacements = map[string]string{
+		"<br />":       "\n",
+		"<br/>":        "\n",
 		"<br>":         "\n",
 		"<attention>":  "<b>",
 		"</attention>": "</b>",
@@ -45,7 +55,8 @@ func (p Product) String() string {
 		info = strings.ReplaceAll(info, k, v)
 	}
 
-	return fmt.Sprintf("%s\n\n%s\n\n%s %s\n<a href='%s'>&#8205;</a>", name, info, p.Price, "RUB", imageUrl)
+	res := fmt.Sprintf("%s\n\n%s\n\n%s %s\n<a href='%s'>&#8205;</a>", name, info, p.Price, "RUB", imageUrl)
+	return res
 }
 
 func (p Product) PaymentURL(sellerId string) string {
