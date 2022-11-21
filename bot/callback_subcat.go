@@ -9,6 +9,7 @@ func (b *bot) SubCategoryCallback(upd tgbotapi.Update, category callbackEntity) 
 	categoryName, subs, ok := b.cache.SubCategory(category.id)
 	if !ok {
 		b.logger.Error("sub categories not found", zap.String("category", categoryName))
+		return
 	}
 
 	rows := make([][]tgbotapi.InlineKeyboardButton, 0, len(subs)+1)

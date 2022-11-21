@@ -30,7 +30,7 @@ func (b *bot) Run() {
 			}
 			cmd.action(upd)
 		}
-
+		
 		if upd.CallbackQuery != nil {
 			data := upd.CallbackData()
 			entity := unmarshallCb(data)

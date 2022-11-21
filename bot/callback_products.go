@@ -8,7 +8,8 @@ import (
 func (b *bot) ProductsCallback(upd tgbotapi.Update, subCategoryEntity callbackEntity) {
 	subCategoryName, products, ok := b.cache.Products(subCategoryEntity.id)
 	if !ok {
-		b.logger.Error("products not found", zap.String("sub category", subCategoryName))
+		b.logger.Error("sub category is empty", zap.String("sub category", subCategoryName))
+		return
 	}
 
 	rows := make([][]tgbotapi.InlineKeyboardButton, 0, len(products)+1)
@@ -41,6 +42,7 @@ func (b *bot) ProductCallback(upd tgbotapi.Update, productsEntity callbackEntity
 	product, ok := b.cache.Product(subCategoryId, productsEntity.id)
 	if !ok {
 		b.logger.Error("product not found", zap.String("sub_category_id", subCategoryId), zap.String("product_id", productsEntity.id))
+		return
 	}
 
 	rows := tgbotapi.NewInlineKeyboardRow(
@@ -77,6 +79,7 @@ func (b *bot) ProductInstructionCallback(upd tgbotapi.Update, productEntity call
 	product, ok := b.cache.Product(subCategoryId, productEntity.id)
 	if !ok {
 		b.logger.Error("product not found", zap.String("sub_category_id", subCategoryId), zap.String("product_id", productEntity.id))
+		return
 	}
 
 	rows := backButton(Product, productEntity.parentIds)
