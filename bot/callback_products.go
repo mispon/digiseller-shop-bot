@@ -5,8 +5,8 @@ import (
 	"go.uber.org/zap"
 )
 
-func (b *bot) ProductsCallback(upd tgbotapi.Update, subCategory callbackEntity) {
-	subCategoryName, products, ok := b.cache.Products(subCategory.id)
+func (b *bot) ProductsCallback(upd tgbotapi.Update, subCategoryEntity callbackEntity) {
+	subCategoryName, products, ok := b.cache.Products(subCategoryEntity.id)
 	if !ok {
 		b.logger.Error("products not found", zap.String("sub category", subCategoryName))
 	}
@@ -15,14 +15,14 @@ func (b *bot) ProductsCallback(upd tgbotapi.Update, subCategory callbackEntity) 
 	for _, product := range products {
 		data := callbackEntity{
 			parentType: Products,
-			parentIds:  append(subCategory.parentIds, subCategory.id),
+			parentIds:  append(subCategoryEntity.parentIds, subCategoryEntity.id),
 			cbType:     Product,
 			id:         product.Id,
 		}
 		button := tgbotapi.NewInlineKeyboardButtonData(product.Name, marshallCb(data))
 		rows = append(rows, tgbotapi.NewInlineKeyboardRow(button))
 	}
-	rows = append(rows, backButton(SubCategory, subCategory.parentIds))
+	rows = append(rows, backButton(SubCategory, subCategoryEntity.parentIds))
 
 	reply := tgbotapi.NewEditMessageTextAndMarkup(
 		upd.CallbackQuery.Message.Chat.ID,
@@ -36,17 +36,27 @@ func (b *bot) ProductsCallback(upd tgbotapi.Update, subCategory callbackEntity) 
 	}
 }
 
-func (b *bot) ProductCallback(upd tgbotapi.Update, producs callbackEntity) {
-	parentId := producs.parentIds[len(producs.parentIds)-1]
-	product, ok := b.cache.Product(parentId, producs.id)
+func (b *bot) ProductCallback(upd tgbotapi.Update, productsEntity callbackEntity) {
+	subCategoryId := productsEntity.parentIds[len(productsEntity.parentIds)-1]
+	product, ok := b.cache.Product(subCategoryId, productsEntity.id)
 	if !ok {
-		b.logger.Error("product not found", zap.String("product_id", producs.id))
+		b.logger.Error("product not found", zap.String("sub_category_id", subCategoryId), zap.String("product_id", productsEntity.id))
 	}
 
 	rows := tgbotapi.NewInlineKeyboardRow(
 		tgbotapi.NewInlineKeyboardButtonURL("Купить", product.PaymentURL(b.opts.sellerId)),
 	)
-	rows = append(rows, backButton(Products, producs.parentIds)...)
+	if product.AddInfo != "" {
+		data := callbackEntity{
+			parentType: Product,
+			parentIds:  append(productsEntity.parentIds, productsEntity.id),
+			cbType:     ProductInstruction,
+			id:         productsEntity.id,
+		}
+		button := tgbotapi.NewInlineKeyboardButtonData("Инструкция", marshallCb(data))
+		rows = append(rows, tgbotapi.NewInlineKeyboardRow(button)...)
+	}
+	rows = append(rows, backButton(Products, productsEntity.parentIds)...)
 
 	reply := tgbotapi.NewEditMessageTextAndMarkup(
 		upd.CallbackQuery.Message.Chat.ID,
@@ -59,5 +69,28 @@ func (b *bot) ProductCallback(upd tgbotapi.Update, producs callbackEntity) {
 
 	if err := b.apiRequest(reply); err != nil {
 		b.logger.Error("failed to show product", zap.String("product", product.Name), zap.Error(err))
+	}
+}
+
+func (b *bot) ProductInstructionCallback(upd tgbotapi.Update, productEntity callbackEntity) {
+	subCategoryId := productEntity.parentIds[len(productEntity.parentIds)-2]
+	product, ok := b.cache.Product(subCategoryId, productEntity.id)
+	if !ok {
+		b.logger.Error("product not found", zap.String("sub_category_id", subCategoryId), zap.String("product_id", productEntity.id))
+	}
+
+	rows := backButton(Product, productEntity.parentIds)
+
+	reply := tgbotapi.NewEditMessageTextAndMarkup(
+		upd.CallbackQuery.Message.Chat.ID,
+		upd.CallbackQuery.Message.MessageID,
+		product.Instruction(),
+		tgbotapi.NewInlineKeyboardMarkup(rows),
+	)
+	reply.ParseMode = "html"
+	reply.DisableWebPagePreview = true
+
+	if err := b.apiRequest(reply); err != nil {
+		b.logger.Error("failed to show product instruction", zap.String("product", product.Name), zap.Error(err))
 	}
 }

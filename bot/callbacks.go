@@ -14,6 +14,7 @@ const (
 	SubCategory
 	Products
 	Product
+	ProductInstruction
 	Back
 )
 
@@ -30,10 +31,11 @@ type (
 
 func (b *bot) initCallbacks() {
 	b.callbacks = map[callbackType]callbackFn{
-		SubCategory: b.SubCategoryCallback,
-		Products:    b.ProductsCallback,
-		Product:     b.ProductCallback,
-		Back:        b.BackCallback,
+		SubCategory:        b.SubCategoryCallback,
+		Products:           b.ProductsCallback,
+		Product:            b.ProductCallback,
+		ProductInstruction: b.ProductInstructionCallback,
+		Back:               b.BackCallback,
 	}
 }
 

@@ -59,6 +59,16 @@ func (p Product) String() string {
 	return res
 }
 
+func (p Product) Instruction() string {
+	addInfo := p.AddInfo
+	for k, v := range htmlReplacements {
+		addInfo = strings.ReplaceAll(addInfo, k, v)
+	}
+
+	res := fmt.Sprintf("%s", addInfo)
+	return res
+}
+
 func (p Product) PaymentURL(sellerId string) string {
 	return fmt.Sprintf(paymentURL, p.Id, sellerId)
 }
