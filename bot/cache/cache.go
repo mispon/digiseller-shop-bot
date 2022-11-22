@@ -179,7 +179,8 @@ func (c *cache) load() error {
 }
 
 func (c *cache) refresh() {
-	for range time.After(30 * time.Minute) {
+	ticker := time.NewTicker(30 * time.Minute)
+	for range ticker.C {
 		if err := c.load(); err != nil {
 			c.logger.Error("failed to load data", zap.Error(err))
 		}
