@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"go.uber.org/zap/zapcore"
 	"log"
 
 	xsbot "github.com/mispon/xbox-store-bot/bot"
@@ -28,7 +29,7 @@ func main() {
 		log.Fatal("seller id is not specified")
 	}
 
-	logger := mustLogger()
+	logger := mustLogger(*debug)
 
 	botCache, err := cache.New(logger, *sellerId)
 	if err != nil {
@@ -47,10 +48,21 @@ func main() {
 	bot.Run()
 }
 
-func mustLogger() *zap.Logger {
-	logger, err := zap.NewProduction()
+func mustLogger(debug bool) *zap.Logger {
+	cfg := zap.NewProductionConfig()
+	cfg.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+	cfg.DisableStacktrace = true
+
+	logLevel := zapcore.InfoLevel
+	if debug {
+		logLevel = zapcore.DebugLevel
+	}
+	cfg.Level = zap.NewAtomicLevelAt(logLevel)
+
+	logger, err := cfg.Build()
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	return logger
 }
