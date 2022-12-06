@@ -64,15 +64,36 @@ func marshallCb(data callbackEntity) string {
 func unmarshallCb(data string) callbackEntity {
 	d := strings.Split(data, ";")
 
-	cbType, _ := strconv.Atoi(d[0])
-	pType, _ := strconv.Atoi(d[2])
-	page, _ := strconv.Atoi(d[4])
+	var cbType int
+	if len(d) > 0 {
+		cbType, _ = strconv.Atoi(d[0])
+	}
+
+	var id string
+	if len(d) > 1 {
+		id = d[1]
+	}
+
+	var pType int
+	if len(d) > 2 {
+		pType, _ = strconv.Atoi(d[2])
+	}
+
+	var parentIds []string
+	if len(d) > 3 {
+		parentIds = strings.Split(d[3], ".")
+	}
+
+	var page int
+	if len(d) > 4 {
+		page, _ = strconv.Atoi(d[4])
+	}
 
 	return callbackEntity{
 		cbType:     callbackType(cbType),
-		id:         d[1],
+		id:         id,
 		parentType: callbackType(pType),
-		parentIds:  strings.Split(d[3], "."),
+		parentIds:  parentIds,
 		page:       page,
 	}
 }
