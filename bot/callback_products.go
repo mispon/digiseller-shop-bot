@@ -5,14 +5,16 @@ import (
 	"go.uber.org/zap"
 )
 
+const productsPerPage = 10
+
 func (b *bot) ProductsCallback(upd tgbotapi.Update, subCategoryEntity callbackEntity) {
-	subCategoryName, products, ok := b.cache.Products(subCategoryEntity.id)
+	subCategoryName, products, hasMore, ok := b.cache.Products(subCategoryEntity.id, subCategoryEntity.page, productsPerPage)
 	if !ok {
 		b.logger.Error("sub category is empty", zap.String("sub category", subCategoryName))
 		return
 	}
 
-	rows := make([][]tgbotapi.InlineKeyboardButton, 0, len(products)+1)
+	rows := make([][]tgbotapi.InlineKeyboardButton, 0, productsPerPage+3)
 	for _, product := range products {
 		data := callbackEntity{
 			parentType: Products,
@@ -23,6 +25,24 @@ func (b *bot) ProductsCallback(upd tgbotapi.Update, subCategoryEntity callbackEn
 		button := tgbotapi.NewInlineKeyboardButtonData(product.Name, marshallCb(data))
 		rows = append(rows, tgbotapi.NewInlineKeyboardRow(button))
 	}
+
+	pagesRow := tgbotapi.NewInlineKeyboardRow()
+	if subCategoryEntity.page > 0 {
+		data := subCategoryEntity.Clone()
+		data.page--
+		button := tgbotapi.NewInlineKeyboardButtonData("<-", marshallCb(data))
+		pagesRow = append(pagesRow, button)
+	}
+	if hasMore {
+		data := subCategoryEntity.Clone()
+		data.page++
+		button := tgbotapi.NewInlineKeyboardButtonData("->", marshallCb(data))
+		pagesRow = append(pagesRow, button)
+	}
+	if len(pagesRow) > 0 {
+		rows = append(rows, pagesRow)
+	}
+
 	rows = append(rows, backButton(SubCategory, subCategoryEntity.parentIds))
 
 	reply := tgbotapi.NewEditMessageTextAndMarkup(

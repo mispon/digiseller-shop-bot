@@ -21,7 +21,7 @@ type (
 	inMemoryCache interface {
 		Categories() []desc.Category
 		SubCategory(categoryId string) (string, []desc.SubCategory, bool)
-		Products(subCategoryId string) (string, []desc.Product, bool)
+		Products(subCategoryId string, page, total int) (string, []desc.Product, bool, bool)
 		Product(subCategoryId, productId string) (desc.Product, bool)
 		Search(text string) ([]desc.Product, bool)
 	}

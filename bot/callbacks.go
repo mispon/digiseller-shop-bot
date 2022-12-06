@@ -24,10 +24,21 @@ type (
 		id         string
 		parentType callbackType
 		parentIds  []string
+		page       int
 	}
 
 	callbackFn func(upd tgbotapi.Update, entity callbackEntity)
 )
+
+func (c callbackEntity) Clone() callbackEntity {
+	return callbackEntity{
+		cbType:     c.cbType,
+		id:         c.id,
+		parentType: c.parentType,
+		parentIds:  c.parentIds,
+		page:       c.page,
+	}
+}
 
 func (b *bot) initCallbacks() {
 	b.callbacks = map[callbackType]callbackFn{
@@ -41,11 +52,12 @@ func (b *bot) initCallbacks() {
 
 func marshallCb(data callbackEntity) string {
 	return fmt.Sprintf(
-		"%d;%s;%d;%s",
+		"%d;%s;%d;%s;%d",
 		data.cbType,
 		data.id,
 		data.parentType,
 		strings.Join(data.parentIds, "."),
+		data.page,
 	)
 }
 
@@ -54,11 +66,13 @@ func unmarshallCb(data string) callbackEntity {
 
 	cbType, _ := strconv.Atoi(d[0])
 	pType, _ := strconv.Atoi(d[2])
+	page, _ := strconv.Atoi(d[4])
 
 	return callbackEntity{
 		cbType:     callbackType(cbType),
 		id:         d[1],
 		parentType: callbackType(pType),
 		parentIds:  strings.Split(d[3], "."),
+		page:       page,
 	}
 }

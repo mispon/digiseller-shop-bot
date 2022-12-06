@@ -71,7 +71,7 @@ func (c *cache) SubCategory(categoryId string) (string, []desc.SubCategory, bool
 	return "", nil, false
 }
 
-func (c *cache) Products(subCategoryId string) (string, []desc.Product, bool) {
+func (c *cache) Products(subCategoryId string, page, total int) (string, []desc.Product, bool, bool) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
@@ -87,7 +87,21 @@ LOOP:
 	}
 
 	products, ok := c.data.Products[subCategoryId]
-	return subCategoryName, products, ok
+	if !ok {
+		return subCategoryName, nil, false, false
+	}
+
+	hasMore := false
+	result := make([]desc.Product, 0, total)
+	for i := page * total; i < len(products); i++ {
+		if len(result) == total {
+			hasMore = true
+			break
+		}
+		result = append(result, products[i])
+	}
+
+	return subCategoryName, result, hasMore, true
 }
 
 func (c *cache) Product(subCategoryId, productId string) (desc.Product, bool) {
@@ -159,7 +173,7 @@ func (c *cache) load() error {
 		for i, product := range productsList {
 			info, pErr := uhttp.Get[desc.ProductFull](c.client, fmt.Sprintf(productDataUrl, product.Id))
 			if pErr != nil {
-				c.logger.Error("failed to get full product data", zap.String("product", product.Name), zap.Error(err))
+				c.logger.Error("failed to get full product data", zap.String("product", product.Name), zap.Error(pErr))
 				continue
 			}
 			product.Info = info.Product.Info
