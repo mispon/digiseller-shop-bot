@@ -16,6 +16,8 @@ type (
 
 		commands  map[commandKey]commandEntity
 		callbacks map[callbackType]callbackFn
+
+		members map[int64]struct{}
 	}
 
 	inMemoryCache interface {
@@ -47,6 +49,7 @@ func New(logger *zap.Logger, cache inMemoryCache, token string, opts ...Option) 
 		opts:      bo,
 		commands:  make(map[commandKey]commandEntity),
 		callbacks: make(map[callbackType]callbackFn),
+		members:   make(map[int64]struct{}),
 	}
 
 	if err := b.initCommands(); err != nil {

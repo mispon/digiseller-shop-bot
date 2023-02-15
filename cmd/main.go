@@ -11,9 +11,10 @@ import (
 )
 
 var (
-	token    = flag.String("token", "", "-token=qwerty")
-	sellerId = flag.String("seller-id", "", "-seller-id=12345")
-	debug    = flag.Bool("debug", false, "-debug=true")
+	token     = flag.String("token", "", "-token=qwerty")
+	sellerId  = flag.String("seller-id", "", "-seller-id=12345")
+	debug     = flag.Bool("debug", false, "-debug=true")
+	loadCache = flag.Bool("load-cache", true, "-load-cache=false")
 )
 
 func init() {
@@ -31,7 +32,7 @@ func main() {
 
 	logger := mustLogger(*debug)
 
-	botCache, err := cache.New(logger, *sellerId)
+	botCache, err := cache.New(logger, *sellerId, *loadCache)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -35,17 +35,19 @@ type (
 	}
 )
 
-func New(logger *zap.Logger, sellerId string) (*cache, error) {
+func New(logger *zap.Logger, sellerId string, load bool) (*cache, error) {
 	c := &cache{
 		logger:   logger.Named("cache"),
 		client:   http.DefaultClient,
 		sellerId: sellerId,
 	}
 
-	if err := c.load(); err != nil {
-		return nil, err
+	if load {
+		if err := c.load(); err != nil {
+			return nil, err
+		}
+		go c.refresh()
 	}
-	go c.refresh()
 
 	c.logger.Info("cache loaded")
 	return c, nil

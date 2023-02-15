@@ -3,7 +3,10 @@ package bot
 import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"go.uber.org/zap"
+	"strings"
 )
+
+const promoPrefix = "Промо"
 
 // Run listens updates
 func (b *bot) Run() {
@@ -12,7 +15,18 @@ func (b *bot) Run() {
 		Timeout: 10,
 	}
 	for upd := range b.GetUpdatesChan(updatesCfg) {
+		if upd.MyChatMember != nil {
+			// if user left or kicked bot
+			if upd.MyChatMember.NewChatMember.Status == "left" || upd.MyChatMember.NewChatMember.Status == "kicked" {
+				// remove chat from active chats
+				delete(b.members, upd.MyChatMember.Chat.ID)
+			}
+		}
+
 		if upd.Message != nil {
+			// update chat status on any activity
+			b.members[upd.Message.Chat.ID] = struct{}{}
+
 			if upd.Message.IsCommand() {
 				key := upd.Message.Command()
 				if cmd, ok := b.commands[commandKey(key)]; ok {
@@ -28,7 +42,11 @@ func (b *bot) Run() {
 				continue
 			}
 
-			go b.SearchCmd(upd)
+			if strings.HasPrefix(upd.Message.Text, promoPrefix) {
+				go b.PromoCmd(upd)
+			} else {
+				go b.SearchCmd(upd)
+			}
 		}
 
 		if upd.CallbackQuery != nil {
