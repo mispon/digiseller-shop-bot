@@ -2,18 +2,19 @@ package main
 
 import (
 	"flag"
-	"github.com/redis/go-redis/v9"
-	"go.uber.org/zap/zapcore"
 	"log"
 
 	xsbot "github.com/mispon/xbox-store-bot/bot"
 	"github.com/mispon/xbox-store-bot/bot/cache"
+	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 var (
 	token     = flag.String("token", "", "-token=qwerty")
 	sellerId  = flag.String("seller-id", "", "-seller-id=12345")
+	redisUrl  = flag.String("redis", "redis:6379", "-redis=localhost:6379")
 	debug     = flag.Bool("debug", false, "-debug=true")
 	loadCache = flag.Bool("load-cache", true, "-load-cache=false")
 )
@@ -39,7 +40,7 @@ func main() {
 	}
 
 	rdb := redis.NewClient(&redis.Options{
-		Addr: "localhost:6379",
+		Addr: *redisUrl,
 		DB:   0,
 	})
 

@@ -1,11 +1,11 @@
 package bot
 
 import (
-	"go.uber.org/zap"
 	"strconv"
 	"strings"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"go.uber.org/zap"
 )
 
 var admins = map[string]struct{}{
