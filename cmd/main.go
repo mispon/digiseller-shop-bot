@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap/zapcore"
 	"log"
 
@@ -37,11 +38,16 @@ func main() {
 		log.Fatal(err)
 	}
 
+	rdb := redis.NewClient(&redis.Options{
+		Addr: "localhost:6379",
+		DB:   0,
+	})
+
 	opts := []xsbot.Option{
 		xsbot.WithSeller(*sellerId),
 		xsbot.WithDebug(*debug),
 	}
-	bot, err := xsbot.New(logger, botCache, *token, opts...)
+	bot, err := xsbot.New(logger, botCache, rdb, *token, opts...)
 	if err != nil {
 		log.Fatal("failed to create bot", err)
 	}

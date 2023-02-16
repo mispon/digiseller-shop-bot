@@ -1,10 +1,10 @@
 package bot
 
 import (
-	"strings"
-
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"go.uber.org/zap"
+	"strconv"
+	"strings"
 )
 
 const promoPrefix = "Промо"
@@ -20,13 +20,17 @@ func (b *bot) Run() {
 			// if user left or kicked bot
 			if upd.MyChatMember.NewChatMember.Status == "left" || upd.MyChatMember.NewChatMember.Status == "kicked" {
 				// remove chat from active chats
-				delete(b.members, upd.MyChatMember.Chat.ID)
+				if err := b.rdb.Del(b.ctx, strconv.FormatInt(upd.MyChatMember.Chat.ID, 10)).Err(); err != nil {
+					b.logger.Error("failed to remove chat from active chats", zap.Error(err))
+				}
 			}
 		}
 
 		if upd.Message != nil {
 			// update chat status on any activity
-			b.members[upd.Message.Chat.ID] = struct{}{}
+			if err := b.rdb.Set(b.ctx, strconv.FormatInt(upd.Message.Chat.ID, 10), "", 0).Err(); err != nil {
+				b.logger.Error("failed to update chat status", zap.Error(err))
+			}
 
 			if upd.Message.IsCommand() {
 				key := upd.Message.Command()

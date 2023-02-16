@@ -1,8 +1,10 @@
 package bot
 
 import (
+	"context"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/mispon/xbox-store-bot/bot/desc"
+	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 )
 
@@ -10,14 +12,14 @@ type (
 	bot struct {
 		*tgbotapi.BotAPI
 
+		ctx    context.Context
 		logger *zap.Logger
 		cache  inMemoryCache
+		rdb    *redis.Client
 		opts   options
 
 		commands  map[commandKey]commandEntity
 		callbacks map[callbackType]callbackFn
-
-		members map[int64]struct{}
 	}
 
 	inMemoryCache interface {
@@ -30,7 +32,7 @@ type (
 )
 
 // New creates bot instance
-func New(logger *zap.Logger, cache inMemoryCache, token string, opts ...Option) (*bot, error) {
+func New(logger *zap.Logger, cache inMemoryCache, rdb *redis.Client, token string, opts ...Option) (*bot, error) {
 	api, aErr := tgbotapi.NewBotAPI(token)
 	if aErr != nil {
 		return nil, aErr
@@ -43,13 +45,14 @@ func New(logger *zap.Logger, cache inMemoryCache, token string, opts ...Option) 
 	api.Debug = bo.debug
 
 	b := &bot{
+		ctx:       context.Background(),
 		BotAPI:    api,
 		logger:    logger.Named("bot"),
 		cache:     cache,
+		rdb:       rdb,
 		opts:      bo,
 		commands:  make(map[commandKey]commandEntity),
 		callbacks: make(map[callbackType]callbackFn),
-		members:   make(map[int64]struct{}),
 	}
 
 	if err := b.initCommands(); err != nil {
