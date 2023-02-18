@@ -3,20 +3,22 @@ package main
 import (
 	"flag"
 	"log"
+	"os"
+	"os/signal"
+	"syscall"
 
 	xsbot "github.com/mispon/xbox-store-bot/bot"
 	"github.com/mispon/xbox-store-bot/bot/cache"
-	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
 var (
-	token     = flag.String("token", "", "-token=qwerty")
-	sellerId  = flag.String("seller-id", "", "-seller-id=12345")
-	redisUrl  = flag.String("redis", "redis:6379", "-redis=localhost:6379")
-	debug     = flag.Bool("debug", false, "-debug=true")
-	loadCache = flag.Bool("load-cache", true, "-load-cache=false")
+	token         = flag.String("token", "", "-token=qwerty")
+	sellerId      = flag.String("seller-id", "", "-seller-id=12345")
+	debug         = flag.Bool("debug", false, "-debug=true")
+	loadCache     = flag.Bool("load-cache", true, "-load-cache=false")
+	chatsFilePath = flag.String("chats-file", "chats.txt", "-chats=bot/chats.txt")
 )
 
 func init() {
@@ -32,6 +34,15 @@ func main() {
 		log.Fatal("seller id is not specified")
 	}
 
+	if *chatsFilePath == "" {
+		log.Fatal("chats file path is not specified")
+	}
+
+	chatsFile, err := os.OpenFile(*chatsFilePath, os.O_RDWR|os.O_CREATE, 0666)
+	if err != nil {
+		log.Fatalf("failed to open chats file: %v", err)
+	}
+
 	logger := mustLogger(*debug)
 
 	botCache, err := cache.New(logger, *sellerId, *loadCache)
@@ -39,21 +50,25 @@ func main() {
 		log.Fatal(err)
 	}
 
-	rdb := redis.NewClient(&redis.Options{
-		Addr: *redisUrl,
-		DB:   0,
-	})
-
-	opts := []xsbot.Option{
+	bot, err := xsbot.New(logger, botCache, chatsFile, *token,
 		xsbot.WithSeller(*sellerId),
 		xsbot.WithDebug(*debug),
-	}
-	bot, err := xsbot.New(logger, botCache, rdb, *token, opts...)
+	)
 	if err != nil {
 		log.Fatal("failed to create bot", err)
 	}
 
-	bot.Run()
+	go bot.Run()
+
+	stopCh := make(chan os.Signal, 1)
+	signal.Notify(stopCh, os.Interrupt, syscall.SIGTERM)
+
+	<-stopCh
+
+	bot.Stop()
+	chatsFile.Close()
+
+	logger.Info("Bot gracefully stopped")
 }
 
 func mustLogger(debug bool) *zap.Logger {

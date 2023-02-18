@@ -1,26 +1,37 @@
 package bot
 
 import (
-	"context"
+	"io"
+	"os"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/mispon/xbox-store-bot/bot/desc"
-	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 )
+
+var admins = map[string]struct{}{
+	"noobmaster111": {},
+	"Mispon":        {},
+}
 
 type (
 	bot struct {
 		*tgbotapi.BotAPI
 
-		ctx    context.Context
 		logger *zap.Logger
 		cache  inMemoryCache
-		rdb    *redis.Client
 		opts   options
 
 		commands  map[commandKey]commandEntity
 		callbacks map[callbackType]callbackFn
+
+		chatsMu   sync.RWMutex
+		chats     map[int64]struct{}
+		chatsFile *os.File
 	}
 
 	inMemoryCache interface {
@@ -33,7 +44,7 @@ type (
 )
 
 // New creates bot instance
-func New(logger *zap.Logger, cache inMemoryCache, rdb *redis.Client, token string, opts ...Option) (*bot, error) {
+func New(logger *zap.Logger, cache inMemoryCache, chatsFile *os.File, token string, opts ...Option) (*bot, error) {
 	api, aErr := tgbotapi.NewBotAPI(token)
 	if aErr != nil {
 		return nil, aErr
@@ -45,21 +56,24 @@ func New(logger *zap.Logger, cache inMemoryCache, rdb *redis.Client, token strin
 	}
 	api.Debug = bo.debug
 
+	logger = logger.Named("bot")
 	b := &bot{
-		ctx:       context.Background(),
 		BotAPI:    api,
-		logger:    logger.Named("bot"),
+		logger:    logger,
 		cache:     cache,
-		rdb:       rdb,
 		opts:      bo,
 		commands:  make(map[commandKey]commandEntity),
 		callbacks: make(map[callbackType]callbackFn),
+		chats:     readChats(logger, chatsFile),
+		chatsFile: chatsFile,
 	}
 
 	if err := b.initCommands(); err != nil {
 		return nil, err
 	}
 	b.initCallbacks()
+
+	go b.chatsSaver()
 
 	b.logger.Info("bot created", zap.String("username", api.Self.UserName))
 	return b, nil
@@ -68,4 +82,65 @@ func New(logger *zap.Logger, cache inMemoryCache, rdb *redis.Client, token strin
 func (b *bot) apiRequest(c tgbotapi.Chattable) error {
 	_, err := b.Request(c)
 	return err
+}
+
+func readChats(logger *zap.Logger, file *os.File) map[int64]struct{} {
+	chats := make(map[int64]struct{})
+
+	bytes, err := io.ReadAll(file)
+	if err != nil {
+		logger.Error("failed to read chats", zap.Error(err))
+		return chats
+	}
+
+	chatIDs := strings.Split(string(bytes), ",")
+	for _, val := range chatIDs {
+		if val == "" {
+			continue
+		}
+
+		chatID, err := strconv.ParseInt(val, 10, 64)
+		if err != nil {
+			logger.Error("failed to parse chat id", zap.String("val", val), zap.Error(err))
+			continue
+		}
+		chats[chatID] = struct{}{}
+	}
+
+	logger.Info("chats loaded from file", zap.Int("count", len(chats)))
+	return chats
+}
+
+func (b *bot) writeChats() {
+	b.chatsMu.RLock()
+	defer b.chatsMu.RUnlock()
+
+	if err := b.chatsFile.Truncate(0); err != nil {
+		b.logger.Error("failed to truncate chats file", zap.Error(err))
+		return
+	}
+	if _, err := b.chatsFile.Seek(0, 0); err != nil {
+		b.logger.Error("failed to seek chats file", zap.Error(err))
+		return
+	}
+
+	chatIDs := make([]string, 0, len(b.chats))
+	for chatID := range b.chats {
+		chatIDs = append(chatIDs, strconv.FormatInt(chatID, 10))
+	}
+	data := strings.Join(chatIDs, ",")
+
+	if _, err := b.chatsFile.Write([]byte(data)); err != nil {
+		b.logger.Error("failed to write chats", zap.Error(err))
+	}
+
+	b.logger.Info("chats saved to file", zap.Int("count", len(b.chats)))
+}
+
+func (b *bot) chatsSaver() {
+	ticker := time.NewTicker(10 * time.Minute)
+	for {
+		<-ticker.C
+		b.writeChats()
+	}
 }

@@ -42,6 +42,7 @@ func New(logger *zap.Logger, sellerId string, load bool) (*cache, error) {
 		sellerId: sellerId,
 	}
 
+	startTime := time.Now()
 	if load {
 		if err := c.load(); err != nil {
 			return nil, err
@@ -49,7 +50,7 @@ func New(logger *zap.Logger, sellerId string, load bool) (*cache, error) {
 		go c.refresh()
 	}
 
-	c.logger.Info("cache loaded")
+	c.logger.Info("cache loaded", zap.Duration("duration", time.Since(startTime)))
 	return c, nil
 }
 
@@ -200,6 +201,5 @@ func (c *cache) refresh() {
 		if err := c.load(); err != nil {
 			c.logger.Error("failed to load data", zap.Error(err))
 		}
-		c.logger.Info("cache successfully updated")
 	}
 }

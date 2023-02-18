@@ -1,14 +1,16 @@
 package bot
 
 import (
-	"strconv"
 	"strings"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"go.uber.org/zap"
 )
 
-const promoPrefix = "Промо"
+const (
+	onlinePrefix = "Онлайн"
+	promoPrefix  = "Промо"
+)
 
 // Run listens updates
 func (b *bot) Run() {
@@ -20,18 +22,16 @@ func (b *bot) Run() {
 		if upd.MyChatMember != nil {
 			// if user left or kicked bot
 			if upd.MyChatMember.NewChatMember.Status == "left" || upd.MyChatMember.NewChatMember.Status == "kicked" {
-				// remove chat from active chats
-				if err := b.rdb.Del(b.ctx, strconv.FormatInt(upd.MyChatMember.Chat.ID, 10)).Err(); err != nil {
-					b.logger.Error("failed to remove chat from active chats", zap.Error(err))
-				}
+				b.chatsMu.Lock()
+				delete(b.chats, upd.MyChatMember.Chat.ID)
+				b.chatsMu.Unlock()
 			}
 		}
 
 		if upd.Message != nil {
-			// update chat status on any activity
-			if err := b.rdb.Set(b.ctx, strconv.FormatInt(upd.Message.Chat.ID, 10), "", 0).Err(); err != nil {
-				b.logger.Error("failed to update chat status", zap.Error(err))
-			}
+			b.chatsMu.Lock()
+			b.chats[upd.Message.Chat.ID] = struct{}{}
+			b.chatsMu.Unlock()
 
 			if upd.Message.IsCommand() {
 				key := upd.Message.Command()
@@ -48,7 +48,9 @@ func (b *bot) Run() {
 				continue
 			}
 
-			if strings.HasPrefix(upd.Message.Text, promoPrefix) {
+			if strings.HasPrefix(upd.Message.Text, onlinePrefix) {
+				go b.OnlineCmd(upd)
+			} else if strings.HasPrefix(upd.Message.Text, promoPrefix) {
 				go b.PromoCmd(upd)
 			} else {
 				go b.SearchCmd(upd)
@@ -76,4 +78,8 @@ func backButton(parentType callbackType, parentIds []string) []tgbotapi.InlineKe
 	}
 	button := tgbotapi.NewInlineKeyboardButtonData("Назад", marshallCb(data))
 	return tgbotapi.NewInlineKeyboardRow(button)
+}
+
+func (b *bot) Stop() {
+	b.writeChats()
 }
