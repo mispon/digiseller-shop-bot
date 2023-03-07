@@ -14,5 +14,9 @@ func (b *bot) BackCallback(upd tgbotapi.Update, entity callbackEntity) {
 		b.ProductsCallback(upd, entity)
 	case Product:
 		b.ProductCallback(upd, entity)
+	case SearchSubCategory:
+		b.SearchSubCategoryCallback(upd, entity)
+	case Search:
+		b.SearchCallback(upd, entity)
 	}
 }

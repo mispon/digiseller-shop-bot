@@ -2,9 +2,10 @@ package bot
 
 import (
 	"fmt"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"strconv"
 	"strings"
+
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
 type callbackType int
@@ -15,6 +16,11 @@ const (
 	Products
 	Product
 	ProductInstruction
+	Search
+	SearchParams
+	SearchInstruction
+	SearchSubCategory
+	SearchProduct
 	Back
 )
 
@@ -25,6 +31,7 @@ type (
 		parentType callbackType
 		parentIds  []string
 		page       int
+		skip       int
 	}
 
 	callbackFn func(upd tgbotapi.Update, entity callbackEntity)
@@ -46,18 +53,24 @@ func (b *bot) initCallbacks() {
 		Products:           b.ProductsCallback,
 		Product:            b.ProductCallback,
 		ProductInstruction: b.ProductInstructionCallback,
+		SearchSubCategory:  b.SearchSubCategoryCallback,
+		SearchParams:       b.SearchParamsCallback,
+		SearchProduct:      b.SearchProductCallback,
 		Back:               b.BackCallback,
+		Search:             b.SearchCallback,
+		SearchInstruction:  b.SearchInstructionCallback,
 	}
 }
 
 func marshallCb(data callbackEntity) string {
 	return fmt.Sprintf(
-		"%d;%s;%d;%s;%d",
+		"%d;%s;%d;%s;%d;%d",
 		data.cbType,
 		data.id,
 		data.parentType,
 		strings.Join(data.parentIds, "."),
 		data.page,
+		data.skip,
 	)
 }
 
@@ -89,11 +102,17 @@ func unmarshallCb(data string) callbackEntity {
 		page, _ = strconv.Atoi(d[4])
 	}
 
+	var skip int
+	if len(d) > 5 {
+		skip, _ = strconv.Atoi(d[5])
+	}
+
 	return callbackEntity{
 		cbType:     callbackType(cbType),
 		id:         id,
 		parentType: callbackType(pType),
 		parentIds:  parentIds,
 		page:       page,
+		skip:       skip,
 	}
 }

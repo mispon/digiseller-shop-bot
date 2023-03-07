@@ -8,8 +8,9 @@ import (
 )
 
 const (
-	onlinePrefix = "Онлайн"
-	promoPrefix  = "Промо"
+	onlinePrefix          = "Онлайн"
+	promoPrefix           = "Промо"
+	conversionRatesPrefix = "Курс"
 )
 
 // Run listens updates
@@ -29,9 +30,9 @@ func (b *bot) Run() {
 		}
 
 		if upd.Message != nil {
-			b.chatsMu.Lock()
-			b.chats[upd.Message.Chat.ID] = struct{}{}
-			b.chatsMu.Unlock()
+			if !b.chatExist(upd.Message.Chat.ID) {
+				b.addChat(upd.Message.Chat.ID)
+			}
 
 			if upd.Message.IsCommand() {
 				key := upd.Message.Command()
@@ -52,6 +53,8 @@ func (b *bot) Run() {
 				go b.OnlineCmd(upd)
 			} else if strings.HasPrefix(upd.Message.Text, promoPrefix) {
 				go b.PromoCmd(upd)
+			} else if strings.HasPrefix(upd.Message.Text, conversionRatesPrefix) {
+				b.ConversionRates(upd)
 			} else {
 				go b.SearchCmd(upd)
 			}
@@ -60,6 +63,10 @@ func (b *bot) Run() {
 		if upd.CallbackQuery != nil {
 			data := upd.CallbackData()
 			entity := unmarshallCb(data)
+
+			if entity.cbType != Search && entity.parentType != Search {
+				b.clearSearchParams(upd.CallbackQuery.Message.Chat.ID)
+			}
 
 			callback := tgbotapi.NewCallback(upd.CallbackQuery.ID, "")
 			b.apiRequest(callback)
@@ -72,9 +79,11 @@ func (b *bot) Run() {
 func backButton(parentType callbackType, parentIds []string) []tgbotapi.InlineKeyboardButton {
 	data := callbackEntity{
 		parentType: parentType,
-		parentIds:  parentIds[0 : len(parentIds)-1],
 		cbType:     Back,
-		id:         parentIds[len(parentIds)-1],
+	}
+	if len(parentIds) > 0 {
+		data.id = parentIds[len(parentIds)-1]
+		data.parentIds = parentIds[0 : len(parentIds)-1]
 	}
 	button := tgbotapi.NewInlineKeyboardButtonData("Назад", marshallCb(data))
 	return tgbotapi.NewInlineKeyboardRow(button)

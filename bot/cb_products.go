@@ -1,11 +1,28 @@
 package bot
 
 import (
+	"fmt"
+
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/mispon/xbox-store-bot/bot/desc"
+	"github.com/mispon/xbox-store-bot/bot/digi"
+	"github.com/mispon/xbox-store-bot/bot/search"
 	"go.uber.org/zap"
 )
 
 const productsPerPage = 10
+
+func productsButtons(products []desc.Product, entity callbackEntity) [][]tgbotapi.InlineKeyboardButton {
+	rows := make([][]tgbotapi.InlineKeyboardButton, 0, productsPerPage+3)
+	for _, product := range products {
+		data := entity
+		data.id = product.Id
+
+		button := tgbotapi.NewInlineKeyboardButtonData(product.Name, marshallCb(data))
+		rows = append(rows, tgbotapi.NewInlineKeyboardRow(button))
+	}
+	return rows
+}
 
 func (b *bot) ProductsCallback(upd tgbotapi.Update, subCategoryEntity callbackEntity) {
 	subCategoryName, products, hasMore, ok := b.cache.Products(subCategoryEntity.id, subCategoryEntity.page, productsPerPage)
@@ -14,17 +31,11 @@ func (b *bot) ProductsCallback(upd tgbotapi.Update, subCategoryEntity callbackEn
 		return
 	}
 
-	rows := make([][]tgbotapi.InlineKeyboardButton, 0, productsPerPage+3)
-	for _, product := range products {
-		data := callbackEntity{
-			parentType: Products,
-			parentIds:  append(subCategoryEntity.parentIds, subCategoryEntity.id),
-			cbType:     Product,
-			id:         product.Id,
-		}
-		button := tgbotapi.NewInlineKeyboardButtonData(product.Name, marshallCb(data))
-		rows = append(rows, tgbotapi.NewInlineKeyboardRow(button))
-	}
+	rows := productsButtons(products, callbackEntity{
+		parentType: Products,
+		parentIds:  append(subCategoryEntity.parentIds, subCategoryEntity.id),
+		cbType:     Product,
+	})
 
 	pagesRow := tgbotapi.NewInlineKeyboardRow()
 	if subCategoryEntity.page > 0 {
@@ -78,13 +89,67 @@ func (b *bot) ProductCallback(upd tgbotapi.Update, productsEntity callbackEntity
 		button := tgbotapi.NewInlineKeyboardButtonData("Инструкция", marshallCb(data))
 		rows = append(rows, tgbotapi.NewInlineKeyboardRow(button)...)
 	}
-	rows = append(rows, backButton(Products, productsEntity.parentIds)...)
+	rows = append(rows, backButton(productsEntity.parentType, productsEntity.parentIds)...)
 
 	reply := tgbotapi.NewEditMessageTextAndMarkup(
 		upd.CallbackQuery.Message.Chat.ID,
 		upd.CallbackQuery.Message.MessageID,
 		product.String(),
 		tgbotapi.NewInlineKeyboardMarkup(rows),
+	)
+	reply.ParseMode = "html"
+	reply.DisableWebPagePreview = false
+
+	if err := b.apiRequest(reply); err != nil {
+		b.logger.Error("failed to show product", zap.String("product", product.Name), zap.Error(err))
+	}
+}
+
+func (b *bot) SearchProductCallback(upd tgbotapi.Update, productsEntity callbackEntity) {
+	product, err := search.GetProduct(b.client, b.opts.search.url, productsEntity.id)
+	if err != nil {
+		b.logger.Error("product not found", zap.String("product_id", productsEntity.id))
+		return
+	}
+
+	rows := make([][]tgbotapi.InlineKeyboardButton, 0)
+	if price, ok := product.Prices["ARS"]; ok && price != 0 {
+		rubPrice := int(price * b.getConversionRate("ARS"))
+		if rubPrice < 600 {
+			rubPrice = 600
+		}
+		buttonARText := fmt.Sprintf(`Купить "Покупкой на аккаунт" 🇦🇷 за %d руб.`, rubPrice)
+		rows = append(rows, tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonURL(
+				buttonARText,
+				digi.CustomProductPaymentURL(b.client,
+					b.opts.sellerId, product.Name,
+					b.opts.search.universalProductId, b.opts.search.universalProductOptionId, rubPrice))))
+	}
+	if price, ok := product.Prices["TRY"]; ok && price != 0 {
+		rubPrice := int(price * b.getConversionRate("TRY"))
+
+		var buttonTRText string
+		if product.IsBackwardCompatibil() {
+			buttonTRText = fmt.Sprintf(`Купить "Покупкой на аккаунт" 🇹🇷 за %d руб.`, rubPrice)
+		} else {
+			buttonTRText = fmt.Sprintf(`Купить "Ключ активации" 🇹🇷 за %d руб.`, rubPrice)
+		}
+
+		rows = append(rows, tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonURL(
+				buttonTRText,
+				digi.CustomProductPaymentURL(b.client,
+					b.opts.sellerId, product.Name,
+					b.opts.search.universalProductId, b.opts.search.universalProductOptionId, rubPrice))))
+	}
+	rows = append(rows, backButton(Search, []string{}))
+
+	reply := tgbotapi.NewEditMessageTextAndMarkup(
+		upd.CallbackQuery.Message.Chat.ID,
+		upd.CallbackQuery.Message.MessageID,
+		product.String(),
+		tgbotapi.NewInlineKeyboardMarkup(rows...),
 	)
 	reply.ParseMode = "html"
 	reply.DisableWebPagePreview = false

@@ -3,11 +3,8 @@ package desc
 import (
 	"fmt"
 	"strings"
-)
 
-const (
-	paymentURL    = "https://www.digiseller.market/asp2/pay_api.asp?id_d=%s&curr=API_5011_RUB&_subcurr=&lang=ru-RU&_ids_shop=%s&failpage=https://x-box-store.ru"
-	imageUrlTempl = "http://graph.digiseller.ru/img.ashx?id_d=%s&maxlength=400"
+	"github.com/mispon/xbox-store-bot/bot/digi"
 )
 
 type (
@@ -46,7 +43,7 @@ var (
 )
 
 func (p Product) String() string {
-	imageUrl := fmt.Sprintf(imageUrlTempl, p.Id)
+	imageUrl := digi.ProductImageUrl(p.Id)
 
 	name := p.Name
 	info := p.Info
@@ -64,11 +61,9 @@ func (p Product) Instruction() string {
 	for k, v := range htmlReplacements {
 		addInfo = strings.ReplaceAll(addInfo, k, v)
 	}
-
-	res := fmt.Sprintf("%s", addInfo)
-	return res
+	return addInfo
 }
 
 func (p Product) PaymentURL(sellerId string) string {
-	return fmt.Sprintf(paymentURL, p.Id, sellerId)
+	return digi.ProductPaymentURL(p.Id, sellerId)
 }

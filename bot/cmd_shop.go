@@ -42,5 +42,16 @@ func (b *bot) getCategoriesKeyboard() tgbotapi.InlineKeyboardMarkup {
 		rows = append(rows, tgbotapi.NewInlineKeyboardRow(button))
 	}
 
+	if b.opts.search.enabled {
+		data := callbackEntity{
+			parentType: Categories,
+			cbType:     SearchSubCategory,
+			id:         "SearchCategory",
+		}
+
+		button := tgbotapi.NewInlineKeyboardButtonData("Поиск игр", marshallCb(data))
+		rows = append(rows, tgbotapi.NewInlineKeyboardRow(button))
+	}
+
 	return tgbotapi.NewInlineKeyboardMarkup(rows...)
 }
