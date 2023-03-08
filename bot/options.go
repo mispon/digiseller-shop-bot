@@ -7,6 +7,7 @@ type (
 		universalProductId       int
 		universalProductOptionId int
 	}
+
 	options struct {
 		sellerId string
 		debug    bool
