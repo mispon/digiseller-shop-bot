@@ -13,7 +13,7 @@ import (
 const productsPerPage = 10
 
 func productsButtons(products []desc.Product, entity callbackEntity) [][]tgbotapi.InlineKeyboardButton {
-	rows := make([][]tgbotapi.InlineKeyboardButton, 0, productsPerPage+3)
+	rows := make([][]tgbotapi.InlineKeyboardButton, 0, productsPerPage)
 	for _, product := range products {
 		data := entity
 		data.id = product.Id
@@ -31,11 +31,14 @@ func (b *bot) ProductsCallback(upd tgbotapi.Update, subCategoryEntity callbackEn
 		return
 	}
 
-	rows := productsButtons(products, callbackEntity{
+	buttons := productsButtons(products, callbackEntity{
 		parentType: Products,
 		parentIds:  append(subCategoryEntity.parentIds, subCategoryEntity.id),
 		cbType:     Product,
 	})
+
+	rows := make([][]tgbotapi.InlineKeyboardButton, 0, len(buttons)+3)
+	rows = append(rows, buttons...)
 
 	pagesRow := tgbotapi.NewInlineKeyboardRow()
 	if subCategoryEntity.page > 0 {
@@ -106,6 +109,8 @@ func (b *bot) ProductCallback(upd tgbotapi.Update, productsEntity callbackEntity
 }
 
 func (b *bot) SearchProductCallback(upd tgbotapi.Update, productsEntity callbackEntity) {
+	const minArsPrice = 600
+
 	product, err := search.GetProduct(b.client, b.opts.search.url, productsEntity.id)
 	if err != nil {
 		b.logger.Error("product not found", zap.String("product_id", productsEntity.id))
@@ -115,8 +120,8 @@ func (b *bot) SearchProductCallback(upd tgbotapi.Update, productsEntity callback
 	rows := make([][]tgbotapi.InlineKeyboardButton, 0)
 	if price, ok := product.Prices["ARS"]; ok && price != 0 {
 		rubPrice := int(price * b.getConversionRate("ARS"))
-		if rubPrice < 600 {
-			rubPrice = 600
+		if rubPrice < minArsPrice {
+			rubPrice = minArsPrice
 		}
 		buttonARText := fmt.Sprintf(`Купить "Покупкой на аккаунт" 🇦🇷 за %d руб.`, rubPrice)
 		rows = append(rows, tgbotapi.NewInlineKeyboardRow(

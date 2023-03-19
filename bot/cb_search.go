@@ -9,10 +9,7 @@ import (
 )
 
 func (b *bot) SearchCallback(upd tgbotapi.Update, searchEntity callbackEntity) {
-	var (
-		chatID int64
-		rows   [][]tgbotapi.InlineKeyboardButton
-	)
+	var chatID int64
 
 	if upd.CallbackQuery != nil {
 		chatID = upd.CallbackQuery.Message.Chat.ID
@@ -29,18 +26,20 @@ func (b *bot) SearchCallback(upd tgbotapi.Update, searchEntity callbackEntity) {
 	if err != nil {
 		b.logger.Warn("failed to search in xbox com", zap.Error(err))
 
-		rows = append(rows, backButton(SearchSubCategory, []string{}))
 		reply := tgbotapi.NewEditMessageTextAndMarkup(
 			chatID,
 			sp.messageID,
 			search.EmptyResultMessage,
-			tgbotapi.NewInlineKeyboardMarkup(rows...),
+			tgbotapi.NewInlineKeyboardMarkup(backButton(SearchSubCategory, []string{})),
 		)
 		b.apiRequest(reply)
 		return
 	}
 
-	rows = productsButtons(products, callbackEntity{parentType: Search, cbType: SearchProduct})
+	buttons := productsButtons(products, callbackEntity{parentType: Search, cbType: SearchProduct})
+
+	rows := make([][]tgbotapi.InlineKeyboardButton, 0, len(buttons)+3)
+	rows = append(rows, buttons...)
 
 	pagesRow := tgbotapi.NewInlineKeyboardRow()
 	if searchEntity.skip > 0 {

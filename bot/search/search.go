@@ -19,7 +19,7 @@ func Categories(c *http.Client, host string) ([]desc.SubCategory, error) {
 	if err != nil {
 		return nil, err
 	}
-	result := make([]desc.SubCategory, len(subCategories))
+	result := make([]desc.SubCategory, 0, len(subCategories))
 
 	for _, item := range subCategories {
 		result = append(result, desc.SubCategory{
@@ -42,7 +42,7 @@ func Search(c *http.Client, host, category, query string, count, skip int) ([]de
 	if err != nil {
 		return nil, 0, err
 	}
-	result := make([]desc.Product, len(products.Items))
+	result := make([]desc.Product, 0, len(products.Items))
 
 	for _, item := range products.Items {
 		if item.Product.Prices["ARS"] != 0 || item.Product.Prices["TRY"] != 0 {
@@ -73,15 +73,15 @@ func (p Product) String() string {
 }
 
 func (p Product) IsBackwardCompatibil() bool {
-	gen7Game := true
+	if p.CategoryName == "Xbox360BackwardCompatibil" {
+		return true
+	}
+
 	for _, gen := range p.Gens {
 		if gen != "ConsoleGen7" {
-			gen7Game = false
+			return true
 		}
 	}
 
-	if p.CategoryName == "Xbox360BackwardCompatibil" || gen7Game {
-		return true
-	}
 	return false
 }

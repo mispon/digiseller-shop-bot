@@ -42,7 +42,7 @@ func (b *bot) processUpdate(upd tgbotapi.Update) {
 		if upd.Message.IsCommand() {
 			key := upd.Message.Command()
 			if cmd, ok := b.commands[commandKey(key)]; ok {
-				go cmd.action(upd)
+				cmd.action(upd)
 			} else {
 				b.logger.Error("command handler not found", zap.String("cmd", key))
 			}
@@ -50,18 +50,18 @@ func (b *bot) processUpdate(upd tgbotapi.Update) {
 		}
 
 		if cmd, ok := b.replyToCommand(upd.Message.Text); ok {
-			go cmd.action(upd)
+			cmd.action(upd)
 			return
 		}
 
 		if strings.HasPrefix(upd.Message.Text, onlinePrefix) {
-			go b.OnlineCmd(upd)
+			b.OnlineCmd(upd)
 		} else if strings.HasPrefix(upd.Message.Text, promoPrefix) {
-			go b.PromoCmd(upd)
+			b.PromoCmd(upd)
 		} else if strings.HasPrefix(upd.Message.Text, conversionRatesPrefix) {
 			b.ConversionRates(upd)
 		} else {
-			go b.SearchCmd(upd)
+			b.SearchCmd(upd)
 		}
 	}
 

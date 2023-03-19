@@ -17,6 +17,26 @@ type (
 
 var EmptyQuery map[string]string
 
+func do[T any](client Client, request *http.Request) (T, error) {
+	var result T
+	resp, err := client.Do(request)
+	if err != nil {
+		return result, fmt.Errorf("failed to send http request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	content, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return result, fmt.Errorf("failed to read response content: %v", err)
+	}
+
+	if jErr := json.Unmarshal(content, &result); jErr != nil {
+		return result, fmt.Errorf("failed to unmarshal response: %v", jErr)
+	}
+
+	return result, nil
+}
+
 func Get[T any](client Client, url string, query map[string]string) (T, error) {
 	var empty T
 	req, err := http.NewRequest("GET", url, nil)
@@ -33,23 +53,7 @@ func Get[T any](client Client, url string, query map[string]string) (T, error) {
 		req.URL.RawQuery = q.Encode()
 	}
 
-	resp, err := client.Do(req)
-	if err != nil {
-		return empty, fmt.Errorf("failed to send http request: %v", err)
-	}
-	defer resp.Body.Close()
-
-	content, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return empty, fmt.Errorf("failed to read response content: %v", err)
-	}
-
-	var result T
-	if jErr := json.Unmarshal(content, &result); jErr != nil {
-		return empty, fmt.Errorf("failed to unmarshal response: %v", jErr)
-	}
-
-	return result, nil
+	return do[T](client, req)
 }
 
 func Post[T any](client Client, url string, body any) (T, error) {
@@ -73,23 +77,7 @@ func Post[T any](client Client, url string, body any) (T, error) {
 	}
 	req.Header.Set("Accept", "application/json")
 
-	resp, err := client.Do(req)
-	if err != nil {
-		return empty, fmt.Errorf("failed to send http request: %v", err)
-	}
-	defer resp.Body.Close()
-
-	content, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return empty, fmt.Errorf("failed to read response content: %v", err)
-	}
-
-	var result T
-	if jErr := json.Unmarshal(content, &result); jErr != nil {
-		return empty, fmt.Errorf("failed to unmarshal response: %v", jErr)
-	}
-
-	return result, nil
+	return do[T](client, req)
 }
 
 func IsValidUrl(str string) bool {
