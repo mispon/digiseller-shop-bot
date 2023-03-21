@@ -9,14 +9,9 @@ import (
 	"time"
 
 	"github.com/mispon/xbox-store-bot/bot/desc"
+	"github.com/mispon/xbox-store-bot/bot/digi"
 	uhttp "github.com/mispon/xbox-store-bot/utils/http"
 	"go.uber.org/zap"
-)
-
-const (
-	categoryUrl    = "https://api.digiseller.ru/api/categories?seller_id=%s"
-	productListUrl = "https://api.digiseller.ru/api/shop/products?seller_id=%s&category_id=%s&page=%d"
-	productDataUrl = "https://api.digiseller.ru/api/products/%s/data"
 )
 
 type (
@@ -143,7 +138,7 @@ func (c *cache) Search(text string) ([]desc.Product, bool) {
 }
 
 func (c *cache) load() error {
-	categoriesResp, err := uhttp.Get[desc.Categories](c.client, fmt.Sprintf(categoryUrl, c.sellerId))
+	categoriesResp, err := uhttp.Get[desc.Categories](c.client, fmt.Sprintf(digi.CategoryUrl, c.sellerId), uhttp.EmptyQuery)
 	if err != nil {
 		c.logger.Error("failed to load categories", zap.Error(err))
 		return err
@@ -154,15 +149,13 @@ func (c *cache) load() error {
 		for _, sc := range category.Sub {
 			page := 1
 			for {
-				productsResp, pErr := uhttp.Get[desc.Products](c.client, fmt.Sprintf(productListUrl, c.sellerId, sc.Id, page))
+				productsResp, pErr := uhttp.Get[desc.Products](c.client, fmt.Sprintf(digi.ProductListUrl, c.sellerId, sc.Id, page), uhttp.EmptyQuery)
 				if pErr != nil {
 					c.logger.Error("failed to load products", zap.Error(err))
 					return pErr
 				}
 
-				items := productsMap[sc.Id]
-				items = append(items, productsResp.Items...)
-				productsMap[sc.Id] = items
+				productsMap[sc.Id] = append(productsMap[sc.Id], productsResp.Items...)
 
 				page++
 				if tp, cErr := strconv.Atoi(productsResp.Pages); cErr != nil || page > tp {
@@ -174,7 +167,7 @@ func (c *cache) load() error {
 
 	for sc, productsList := range productsMap {
 		for i, product := range productsList {
-			info, pErr := uhttp.Get[desc.ProductFull](c.client, fmt.Sprintf(productDataUrl, product.Id))
+			info, pErr := uhttp.Get[desc.ProductFull](c.client, fmt.Sprintf(digi.ProductDataUrl, product.Id), uhttp.EmptyQuery)
 			if pErr != nil {
 				c.logger.Error("failed to get full product data", zap.String("product", product.Name), zap.Error(pErr))
 				continue

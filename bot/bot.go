@@ -2,6 +2,7 @@ package bot
 
 import (
 	"io"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -16,6 +17,16 @@ import (
 var admins = map[string]struct{}{
 	"noobmaster111": {},
 	"Mispon":        {},
+	"kotovro":       {},
+}
+
+type searchParams struct {
+	category  string
+	query     string
+	messageID int
+}
+type chat struct {
+	searchParams searchParams
 }
 
 type (
@@ -30,8 +41,13 @@ type (
 		callbacks map[callbackType]callbackFn
 
 		chatsMu   sync.RWMutex
-		chats     map[int64]struct{}
+		chats     map[int64]chat
 		chatsFile *os.File
+
+		convRatesMu     sync.RWMutex
+		conversionRates map[string]float64
+
+		client *http.Client
 	}
 
 	inMemoryCache interface {
@@ -66,6 +82,11 @@ func New(logger *zap.Logger, cache inMemoryCache, chatsFile *os.File, token stri
 		callbacks: make(map[callbackType]callbackFn),
 		chats:     readChats(logger, chatsFile),
 		chatsFile: chatsFile,
+		client:    http.DefaultClient,
+		conversionRates: map[string]float64{
+			"ARS": 0.75,
+			"TRY": 6,
+		},
 	}
 
 	if err := b.initCommands(); err != nil {
@@ -84,8 +105,8 @@ func (b *bot) apiRequest(c tgbotapi.Chattable) error {
 	return err
 }
 
-func readChats(logger *zap.Logger, file *os.File) map[int64]struct{} {
-	chats := make(map[int64]struct{})
+func readChats(logger *zap.Logger, file *os.File) map[int64]chat {
+	chats := make(map[int64]chat)
 
 	bytes, err := io.ReadAll(file)
 	if err != nil {
@@ -104,7 +125,7 @@ func readChats(logger *zap.Logger, file *os.File) map[int64]struct{} {
 			logger.Error("failed to parse chat id", zap.String("val", val), zap.Error(err))
 			continue
 		}
-		chats[chatID] = struct{}{}
+		chats[chatID] = chat{searchParams{}}
 	}
 
 	logger.Info("chats loaded from file", zap.Int("count", len(chats)))
@@ -137,10 +158,33 @@ func (b *bot) writeChats() {
 	b.logger.Info("chats saved to file", zap.Int("count", len(b.chats)))
 }
 
+func (b *bot) addChat(chatID int64) {
+	b.chatsMu.Lock()
+	defer b.chatsMu.Unlock()
+
+	b.chats[chatID] = chat{searchParams{}}
+}
+
+func (b *bot) chatExist(chatID int64) bool {
+	b.chatsMu.RLock()
+	defer b.chatsMu.RUnlock()
+
+	if _, ok := b.chats[chatID]; ok {
+		return true
+	}
+	return false
+}
+
 func (b *bot) chatsSaver() {
 	ticker := time.NewTicker(10 * time.Minute)
 	for {
 		<-ticker.C
 		b.writeChats()
 	}
+}
+
+func (b *bot) getConversionRate(currency string) float64 {
+	b.convRatesMu.RLock()
+	defer b.convRatesMu.RUnlock()
+	return b.conversionRates[currency]
 }

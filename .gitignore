@@ -21,3 +21,5 @@ vendor.protogen/*
 .DS_Store
 
 bin/
+
+*chats.txt

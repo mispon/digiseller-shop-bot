@@ -4,16 +4,16 @@ import (
 	"fmt"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/mispon/xbox-store-bot/bot/digi"
 	"go.uber.org/zap"
 )
 
 const (
-	logoUrl    = "https://my.digiseller.ru/preview/257605/logo_20220513174904.png"
 	reviewsURL = "https://x-box-store.ru/reviews"
 )
 
 func (b *bot) ReviewsCmd(upd tgbotapi.Update) {
-	message := fmt.Sprintf("Отзывы покупателей\n<a href='%s'>&#8205;</a>", logoUrl)
+	message := fmt.Sprintf("Отзывы покупателей\n<a href='%s'>&#8205;</a>", digi.ReviewslogoUrl)
 
 	keyboard := tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(
