@@ -1,5 +1,4 @@
-module github.com/mispon/xbox-store-bot
-
+module github.com/mispon/digiseller-shop-bot
 go 1.19
 
 require (
