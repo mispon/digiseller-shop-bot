@@ -7,9 +7,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	xsbot "github.com/mispon/xbox-store-bot/bot"
-	"github.com/mispon/xbox-store-bot/bot/cache"
-	uhttp "github.com/mispon/xbox-store-bot/utils/http"
+	xsbot "github.com/mispon/digiseller-shop-bot/bot"
+	"github.com/mispon/digiseller-shop-bot/bot/cache"
+	uhttp "github.com/mispon/digiseller-shop-bot/utils/http"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )

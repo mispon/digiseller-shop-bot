@@ -10,7 +10,7 @@ import (
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"github.com/mispon/xbox-store-bot/bot/desc"
+	"github.com/mispon/digiseller-shop-bot/bot/desc"
 	"go.uber.org/zap"
 )
 

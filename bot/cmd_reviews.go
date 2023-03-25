@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"github.com/mispon/xbox-store-bot/bot/digi"
+	"github.com/mispon/digiseller-shop-bot/bot/digi"
 	"go.uber.org/zap"
 )
 
@@ -13,7 +13,7 @@ const (
 )
 
 func (b *bot) ReviewsCmd(upd tgbotapi.Update) {
-	message := fmt.Sprintf("Отзывы покупателей\n<a href='%s'>&#8205;</a>", digi.ReviewslogoUrl)
+	message := fmt.Sprintf("Отзывы покупателей\n<a href='%s'>&#8205;</a>", digi.ReviewsLogoUrl)
 
 	keyboard := tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(

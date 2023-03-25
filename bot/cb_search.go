@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"github.com/mispon/xbox-store-bot/bot/search"
+	"github.com/mispon/digiseller-shop-bot/bot/search"
 	"go.uber.org/zap"
 )
 

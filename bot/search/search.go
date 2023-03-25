@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/mispon/xbox-store-bot/bot/desc"
-	uhttp "github.com/mispon/xbox-store-bot/utils/http"
+	"github.com/mispon/digiseller-shop-bot/bot/desc"
+	uhttp "github.com/mispon/digiseller-shop-bot/utils/http"
 )
 
 var (

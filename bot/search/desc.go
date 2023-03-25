@@ -18,7 +18,7 @@ type Product struct {
 
 type Products struct {
 	Items []struct {
-		Weigth  int
+		Weight  int
 		Product Product
 	}
 	TotalItems int

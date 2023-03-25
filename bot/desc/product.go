@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/mispon/xbox-store-bot/bot/digi"
+	"github.com/mispon/digiseller-shop-bot/bot/digi"
 )
 
 type (

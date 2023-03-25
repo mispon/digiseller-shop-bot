@@ -8,9 +8,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mispon/xbox-store-bot/bot/desc"
-	"github.com/mispon/xbox-store-bot/bot/digi"
-	uhttp "github.com/mispon/xbox-store-bot/utils/http"
+	"github.com/mispon/digiseller-shop-bot/bot/desc"
+	"github.com/mispon/digiseller-shop-bot/bot/digi"
+	uhttp "github.com/mispon/digiseller-shop-bot/utils/http"
 	"go.uber.org/zap"
 )
 

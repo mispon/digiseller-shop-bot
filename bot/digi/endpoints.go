@@ -5,11 +5,11 @@ import (
 	"net/http"
 	"strconv"
 
-	uhttp "github.com/mispon/xbox-store-bot/utils/http"
+	uhttp "github.com/mispon/digiseller-shop-bot/utils/http"
 )
 
 const (
-	ReviewslogoUrl = "https://my.digiseller.ru/preview/257605/logo_20220513174904.png"
+	ReviewsLogoUrl = "https://my.digiseller.ru/preview/257605/logo_20220513174904.png"
 	CategoryUrl    = "https://api.digiseller.ru/api/categories?seller_id=%s"
 	ProductListUrl = "https://api.digiseller.ru/api/shop/products?seller_id=%s&category_id=%s&page=%d"
 	ProductDataUrl = "https://api.digiseller.ru/api/products/%s/data"
