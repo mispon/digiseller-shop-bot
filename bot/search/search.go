@@ -73,15 +73,5 @@ func (p Product) String() string {
 }
 
 func (p Product) IsBackwardCompatibil() bool {
-	if p.CategoryName == "Xbox360BackwardCompatibil" {
-		return true
-	}
-
-	for _, gen := range p.Gens {
-		if gen != "ConsoleGen7" {
-			return true
-		}
-	}
-
-	return false
+	return p.CategoryName == "Xbox360BackwardCompatibil"
 }

@@ -8,9 +8,9 @@ import (
 )
 
 const (
-	onlinePrefix          = "Онлайн"
-	promoPrefix           = "Промо"
-	conversionRatesPrefix = "Курс"
+	onlinePrefix     = "Онлайн"
+	promoPrefix      = "Промо"
+	userConfigPrefix = "Конфиг"
 )
 
 // Run listens updates
@@ -58,8 +58,8 @@ func (b *bot) processUpdate(upd tgbotapi.Update) {
 			b.OnlineCmd(upd)
 		} else if strings.HasPrefix(upd.Message.Text, promoPrefix) {
 			b.PromoCmd(upd)
-		} else if strings.HasPrefix(upd.Message.Text, conversionRatesPrefix) {
-			b.ConversionRates(upd)
+		} else if strings.HasPrefix(upd.Message.Text, userConfigPrefix) {
+			b.UpdateUserConfigCmd(upd)
 		} else {
 			b.SearchCmd(upd)
 		}

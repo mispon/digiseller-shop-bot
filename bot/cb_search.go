@@ -98,6 +98,7 @@ func (b *bot) SearchParamsCallback(upd tgbotapi.Update, searchParamsEntity callb
 }
 
 func (b *bot) SearchInstructionCallback(upd tgbotapi.Update, productEntity callbackEntity) {
+	userConfig := b.getUserConfig()
 	rows := backButton(productEntity.parentType, productEntity.parentIds)
 
 	reply := tgbotapi.NewEditMessageTextAndMarkup(
@@ -105,8 +106,9 @@ func (b *bot) SearchInstructionCallback(upd tgbotapi.Update, productEntity callb
 		upd.CallbackQuery.Message.MessageID,
 		fmt.Sprintf(
 			search.InstructionMessage,
-			b.getConversionRate("TRY"),
-			b.getConversionRate("ARS")),
+			userConfig.ConversionRates["TRY"],
+			userConfig.ConversionRates["ARS"],
+			userConfig.MinARSPrice),
 		tgbotapi.NewInlineKeyboardMarkup(rows),
 	)
 	reply.ParseMode = "html"
