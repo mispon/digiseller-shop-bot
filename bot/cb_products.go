@@ -109,7 +109,7 @@ func (b *bot) ProductCallback(upd tgbotapi.Update, productsEntity callbackEntity
 }
 
 func (b *bot) SearchProductCallback(upd tgbotapi.Update, productsEntity callbackEntity) {
-	const minArsPrice = 600
+	userConfig := b.getUserConfig()
 
 	product, err := search.GetProduct(b.client, b.opts.search.url, productsEntity.id)
 	if err != nil {
@@ -119,11 +119,11 @@ func (b *bot) SearchProductCallback(upd tgbotapi.Update, productsEntity callback
 
 	rows := make([][]tgbotapi.InlineKeyboardButton, 0)
 	if price, ok := product.Prices["ARS"]; ok && price != 0 {
-		rubPrice := int(price * b.getConversionRate("ARS"))
-		if rubPrice < minArsPrice {
-			rubPrice = minArsPrice
+		rubPrice := int(price * userConfig.ConversionRates["ARS"])
+		if rubPrice < userConfig.MinARSPrice {
+			rubPrice = userConfig.MinARSPrice
 		}
-		buttonARText := fmt.Sprintf(`Купить "Покупкой на аккаунт" 🇦🇷 за %d руб.`, rubPrice)
+		buttonARText := fmt.Sprintf(`"Покупкой на аккаунт" 🇦🇷 за %d руб.`, rubPrice)
 		rows = append(rows, tgbotapi.NewInlineKeyboardRow(
 			tgbotapi.NewInlineKeyboardButtonURL(
 				buttonARText,
@@ -132,13 +132,11 @@ func (b *bot) SearchProductCallback(upd tgbotapi.Update, productsEntity callback
 					b.opts.search.universalProductId, b.opts.search.universalProductOptionId, rubPrice))))
 	}
 	if price, ok := product.Prices["TRY"]; ok && price != 0 {
-		rubPrice := int(price * b.getConversionRate("TRY"))
+		rubPrice := int(price * userConfig.ConversionRates["TRY"])
 
 		var buttonTRText string
-		if product.IsBackwardCompatibil() {
-			buttonTRText = fmt.Sprintf(`Купить "Покупкой на аккаунт" 🇹🇷 за %d руб.`, rubPrice)
-		} else {
-			buttonTRText = fmt.Sprintf(`Купить "Ключ активации" 🇹🇷 за %d руб.`, rubPrice)
+		if !product.IsBackwardCompatibil() {
+			buttonTRText = fmt.Sprintf(`"Ключ активации" 🇹🇷 за %d руб.`, rubPrice)
 		}
 
 		rows = append(rows, tgbotapi.NewInlineKeyboardRow(

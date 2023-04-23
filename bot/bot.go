@@ -29,6 +29,12 @@ type chat struct {
 	searchParams searchParams
 }
 
+type userConfig struct {
+	sync.RWMutex
+	ConversionRates map[string]float64 `json:"Курсы"`
+	MinARSPrice     int                `json:"Минимальная цена"`
+}
+
 type (
 	bot struct {
 		*tgbotapi.BotAPI
@@ -44,8 +50,7 @@ type (
 		chats     map[int64]chat
 		chatsFile *os.File
 
-		convRatesMu     sync.RWMutex
-		conversionRates map[string]float64
+		userConfig userConfig
 
 		client *http.Client
 	}
@@ -83,9 +88,12 @@ func New(logger *zap.Logger, cache inMemoryCache, chatsFile *os.File, token stri
 		chats:     readChats(logger, chatsFile),
 		chatsFile: chatsFile,
 		client:    http.DefaultClient,
-		conversionRates: map[string]float64{
-			"ARS": 0.75,
-			"TRY": 6,
+		userConfig: userConfig{
+			ConversionRates: map[string]float64{
+				"ARS": 0.75,
+				"TRY": 6,
+			},
+			MinARSPrice: 400,
 		},
 	}
 
@@ -183,8 +191,8 @@ func (b *bot) chatsSaver() {
 	}
 }
 
-func (b *bot) getConversionRate(currency string) float64 {
-	b.convRatesMu.RLock()
-	defer b.convRatesMu.RUnlock()
-	return b.conversionRates[currency]
+func (b *bot) getUserConfig() *userConfig {
+	b.userConfig.RLock()
+	defer b.userConfig.RUnlock()
+	return &b.userConfig
 }
