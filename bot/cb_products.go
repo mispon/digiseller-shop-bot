@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/mispon/digiseller-shop-bot/bot/countries"
 	"github.com/mispon/digiseller-shop-bot/bot/desc"
 	"github.com/mispon/digiseller-shop-bot/bot/digi"
 	"github.com/mispon/digiseller-shop-bot/bot/search"
@@ -109,43 +110,65 @@ func (b *bot) ProductCallback(upd tgbotapi.Update, productsEntity callbackEntity
 }
 
 func (b *bot) SearchProductCallback(upd tgbotapi.Update, productsEntity callbackEntity) {
-	userConfig := b.getUserConfig()
-
 	product, err := search.GetProduct(b.client, b.opts.search.url, productsEntity.id)
 	if err != nil {
 		b.logger.Error("product not found", zap.String("product_id", productsEntity.id))
 		return
 	}
+	var (
+		userConfig  = b.getUserConfig()
+		displayType = userConfig.ProductsDisplayType
 
-	rows := make([][]tgbotapi.InlineKeyboardButton, 0)
-	if price, ok := product.Prices["ARS"]; ok && price != 0 {
-		rubPrice := int(price * userConfig.ConversionRates["ARS"])
-		if rubPrice < userConfig.MinARSPrice {
-			rubPrice = userConfig.MinARSPrice
+		rows               = make([][]tgbotapi.InlineKeyboardButton, 0)
+		curentPrice        = 0
+		currentKeyboardRow = []tgbotapi.InlineKeyboardButton{}
+	)
+
+	for idx, botProduct := range userConfig.BotProducts {
+		if botProduct.SkipBackwardCompatibil && product.IsBackwardCompatibil() {
+			continue
 		}
-		buttonARText := fmt.Sprintf(`"Покупкой на аккаунт" 🇦🇷 за %d руб.`, rubPrice)
-		rows = append(rows, tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonURL(
-				buttonARText,
-				digi.CustomProductPaymentURL(b.client,
-					b.opts.sellerId, product.Name,
-					b.opts.search.universalProductId, b.opts.search.universalProductOptionId, rubPrice))))
-	}
-	if price, ok := product.Prices["TRY"]; ok && price != 0 {
-		rubPrice := int(price * userConfig.ConversionRates["TRY"])
-
-		var buttonTRText string
-		if !product.IsBackwardCompatibil() {
-			buttonTRText = fmt.Sprintf(`"Ключ активации" 🇹🇷 за %d руб.`, rubPrice)
+		country, err := countries.GetCountry(botProduct.Country)
+		if err != nil {
+			continue
 		}
 
-		rows = append(rows, tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonURL(
-				buttonTRText,
-				digi.CustomProductPaymentURL(b.client,
-					b.opts.sellerId, product.Name,
-					b.opts.search.universalProductId, b.opts.search.universalProductOptionId, rubPrice))))
+		if price, ok := product.Prices[country.Currency]; ok && price != 0 {
+			rubPrice := int(price * userConfig.ConversionRates[country.Currency])
+			if rubPrice < botProduct.MinPrice {
+				rubPrice = botProduct.MinPrice
+			}
+			if curentPrice == 0 ||
+				displayType == ProductsDisplayTypeAll ||
+				(displayType == ProductsDisplayTypeMaxPrice && curentPrice < rubPrice) ||
+				(displayType == ProductsDisplayTypeMinPrice && curentPrice > rubPrice) {
+				curentPrice = rubPrice
+
+				var buttonText string
+				if botProduct.PurchaseType == purchaseTypeAcc {
+					buttonText = fmt.Sprintf(`"Покупкой на аккаунт" %s за %d руб.`, country.Flag, rubPrice)
+				} else if botProduct.PurchaseType == purchaseTypeKey {
+					buttonText = fmt.Sprintf(`"Ключ активации" %s за %d руб.`, country.Flag, rubPrice)
+				} else {
+					continue
+				}
+
+				currentKeyboardRow = tgbotapi.NewInlineKeyboardRow(
+					tgbotapi.NewInlineKeyboardButtonURL(
+						buttonText,
+						digi.CustomProductPaymentURL(b.client,
+							b.opts.sellerId, product.Name,
+							b.opts.search.universalProductId, b.opts.search.universalProductOptionId, rubPrice)))
+			}
+
+			if displayType == ProductsDisplayTypeAll ||
+				((displayType == ProductsDisplayTypeMaxPrice || displayType == ProductsDisplayTypeMinPrice) &&
+					idx+1 == len(userConfig.BotProducts)) {
+				rows = append(rows, currentKeyboardRow)
+			}
+		}
 	}
+
 	rows = append(rows, backButton(Search, []string{}))
 
 	reply := tgbotapi.NewEditMessageTextAndMarkup(
