@@ -58,14 +58,17 @@ func (b *bot) SearchSubCategoryCallback(upd tgbotapi.Update, subCategoryEntity c
 		cbType:     SearchParams,
 	})
 
-	data := callbackEntity{
-		parentType: SearchSubCategory,
-		parentIds:  append(subCategoryEntity.parentIds, subCategoryEntity.id),
-		cbType:     SearchInstruction,
-		id:         subCategoryEntity.id,
+	if b.opts.search.showInstruction {
+		data := callbackEntity{
+			parentType: SearchSubCategory,
+			parentIds:  append(subCategoryEntity.parentIds, subCategoryEntity.id),
+			cbType:     SearchInstruction,
+			id:         subCategoryEntity.id,
+		}
+		instructionButton := tgbotapi.NewInlineKeyboardButtonData("Инструкция", marshallCb(data))
+		rows = append(rows, tgbotapi.NewInlineKeyboardRow(instructionButton))
 	}
-	instructionButton := tgbotapi.NewInlineKeyboardButtonData("Инструкция", marshallCb(data))
-	rows = append(rows, tgbotapi.NewInlineKeyboardRow(instructionButton))
+
 	rows = append(rows, backButton(Categories, subCategoryEntity.parentIds))
 
 	reply := tgbotapi.NewEditMessageTextAndMarkup(

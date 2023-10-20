@@ -15,14 +15,15 @@ import (
 )
 
 var (
-	token         = flag.String("token", "", "-token=qwerty")
-	sellerId      = flag.String("seller-id", "", "-seller-id=12345")
-	debug         = flag.Bool("debug", false, "-debug=true")
-	loadCache     = flag.Bool("load-cache", true, "-load-cache=false")
-	chatsFilePath = flag.String("chats-file", "chats.txt", "-chats=bot/chats.txt")
-	searchUrl     = flag.String("search-url", "", "-search-url=http://localhost:8080")
-	uProduct      = flag.Int("uproduct", 0, "-uproduct=12345")
-	uProductOpt   = flag.Int("uproductopt", 0, "-uproductopt=12345")
+	token                 = flag.String("token", "", "-token=qwerty")
+	sellerId              = flag.String("seller-id", "", "-seller-id=12345")
+	debug                 = flag.Bool("debug", false, "-debug=true")
+	loadCache             = flag.Bool("load-cache", true, "-load-cache=false")
+	chatsFilePath         = flag.String("chats-file", "chats.txt", "-chats=bot/chats.txt")
+	searchUrl             = flag.String("search-url", "", "-search-url=http://localhost:8080")
+	showSearchInstruction = flag.Bool("search-instruction", false, "-search-instruction=false")
+	uProduct              = flag.Int("uproduct", 0, "-uproduct=12345")
+	uProductOpt           = flag.Int("uproductopt", 0, "-uproductopt=12345")
 )
 
 func init() {
@@ -68,7 +69,7 @@ func main() {
 	bot, err := xsbot.New(logger, botCache, chatsFile, *token,
 		xsbot.WithSeller(*sellerId),
 		xsbot.WithDebug(*debug),
-		xsbot.WithSearch(*searchUrl, *uProduct, *uProductOpt),
+		xsbot.WithSearch(*searchUrl, *uProduct, *uProductOpt, *showSearchInstruction),
 	)
 	if err != nil {
 		log.Fatal("failed to create bot", err)

@@ -29,12 +29,6 @@ type chat struct {
 	searchParams searchParams
 }
 
-type userConfig struct {
-	sync.RWMutex
-	ConversionRates map[string]float64 `json:"Курсы"`
-	MinARSPrice     int                `json:"Минимальная цена"`
-}
-
 type (
 	bot struct {
 		*tgbotapi.BotAPI
@@ -93,7 +87,19 @@ func New(logger *zap.Logger, cache inMemoryCache, chatsFile *os.File, token stri
 				"ARS": 0.75,
 				"TRY": 6,
 			},
-			MinARSPrice: 400,
+			BotProducts: []BotProduct{
+				{
+					PurchaseType: purchaseTypeAcc,
+					Country:      "AR",
+					MinPrice:     400,
+				},
+				{
+					PurchaseType: purchaseTypeAcc,
+					Country:      "TR",
+					MinPrice:     400,
+				},
+			},
+			ProductsDisplayType: ProductsDisplayTypeMinPrice,
 		},
 	}
 

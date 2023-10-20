@@ -6,6 +6,7 @@ type (
 		url                      string
 		universalProductId       int
 		universalProductOptionId int
+		showInstruction          bool
 	}
 
 	options struct {
@@ -31,13 +32,14 @@ func WithDebug(debug bool) Option {
 	}
 }
 
-func WithSearch(searchUrl string, productId, optionId int) Option {
+func WithSearch(searchUrl string, productId, optionId int, showInstruction bool) Option {
 	return func(o *options) {
 		if searchUrl != "" {
 			o.search.enabled = true
 			o.search.url = searchUrl
 			o.search.universalProductId = productId
 			o.search.universalProductOptionId = optionId
+			o.search.showInstruction = showInstruction
 		}
 	}
 }

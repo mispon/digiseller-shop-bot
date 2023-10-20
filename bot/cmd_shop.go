@@ -31,6 +31,17 @@ func (b *bot) getCategoriesKeyboard() tgbotapi.InlineKeyboardMarkup {
 	categories := b.cache.Categories()
 
 	rows := make([][]tgbotapi.InlineKeyboardButton, 0, len(categories)+1)
+	if b.opts.search.enabled {
+		data := callbackEntity{
+			parentType: Categories,
+			cbType:     SearchSubCategory,
+			id:         "SearchCategory",
+		}
+
+		button := tgbotapi.NewInlineKeyboardButtonData("Игры и дополнения (Под заказ)", marshallCb(data))
+		rows = append(rows, tgbotapi.NewInlineKeyboardRow(button))
+	}
+
 	for _, category := range categories {
 		data := callbackEntity{
 			parentType: Categories,
@@ -39,17 +50,6 @@ func (b *bot) getCategoriesKeyboard() tgbotapi.InlineKeyboardMarkup {
 		}
 
 		button := tgbotapi.NewInlineKeyboardButtonData(category.Name, marshallCb(data))
-		rows = append(rows, tgbotapi.NewInlineKeyboardRow(button))
-	}
-
-	if b.opts.search.enabled {
-		data := callbackEntity{
-			parentType: Categories,
-			cbType:     SearchSubCategory,
-			id:         "SearchCategory",
-		}
-
-		button := tgbotapi.NewInlineKeyboardButtonData("Поиск игр", marshallCb(data))
 		rows = append(rows, tgbotapi.NewInlineKeyboardRow(button))
 	}
 
