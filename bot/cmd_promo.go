@@ -18,12 +18,14 @@ func (b *bot) PromoCmd(upd tgbotapi.Update) {
 	defer b.chatsMu.RUnlock()
 
 	for chatID := range b.chats {
-		reply := tgbotapi.NewMessage(chatID, message)
-		reply.ParseMode = "html"
-		reply.DisableWebPagePreview = false
+		go func(chatID int64) {
+			reply := tgbotapi.NewMessage(chatID, message)
+			reply.ParseMode = "html"
+			reply.DisableWebPagePreview = false
 
-		if err := b.apiRequest(reply); err != nil {
-			b.logger.Error("failed to send promo message", zap.Error(err))
-		}
+			if err := b.apiRequest(reply); err != nil {
+				b.logger.Error("failed to send promo message", zap.Error(err))
+			}
+		}(chatID)
 	}
 }
