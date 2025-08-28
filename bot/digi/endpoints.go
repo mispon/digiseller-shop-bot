@@ -15,7 +15,7 @@ const (
 	ProductDataUrl = "https://api.digiseller.ru/api/products/%s/data"
 
 	imageUrlTempl       = "http://graph.digiseller.ru/img.ashx?id_d=%s&maxlength=400"
-	paymentURLTempl     = "https://www.digiseller.market/asp2/pay_api.asp?id_d=%s&curr=API_5011_RUB&_subcurr=&lang=ru-RU&_ids_shop=%s&failpage=https://x-box-store.ru"
+	paymentURLTempl     = "https://www.oplata.info/asp2/pay_api.asp?id_d=%s&curr=API_5011_RUB&_subcurr=&lang=ru-RU&_ids_shop=%s&failpage=https://x-box-store.ru"
 	purchasesOptionsUrl = "https://api.digiseller.ru/api/purchases/options"
 )
 
